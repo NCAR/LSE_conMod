@@ -1,0 +1,32 @@
+[intro]
+author = "Guoqiang Tang"
+name = "HBV LSE calibration"
+date = "2024-12"
+
+[HPC]
+projectCode = "P08010000"
+
+[data]
+file_parameter_list = "/glade/u/home/guoqiang/calibration/HBVcalib/data/HBV_v1.1_param_bounds.csv"
+inpath_data = "/glade/campaign/cgd/tss/people/guoqiang/HBV_CAMELS/data_Yalan"
+
+[output]
+outpath_parent = "/glade/campaign/cgd/tss/people/guoqiang/HBV_CAMELS/LSEexp6"
+external_iter0 = true
+external_iter0_path = "/glade/campaign/cgd/tss/people/guoqiang/HBV_CAMELS/LSEexp1"
+
+[dates]
+alldata_period = ["1980-10-01", "2014-09-30"]
+train_run_period = ["1999-10-01", "2008-09-30"] 
+train_eval_period = ["2000-10-01", "2008-09-30"]
+test_run_period = ["1986-10-01", "1999-09-30"] 
+test_eval_period = ["1989-10-01", "1999-09-30"]
+
+[emulator]
+objfunc = "normNSE"
+sampling_method = "lh"
+num_init = 200
+num_per_iter = 50
+num_iter = 12
+optmz_times = 1
+attrlist = 'All' # all attributes from Yalan's data

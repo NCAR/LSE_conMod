@@ -1,0 +1,17 @@
+Parameter,Default,Lower,Upper,Method
+parBETA,3.5,1.0,6.0,Multiplicative
+parFC,525.0,50.0,1000.0,Multiplicative
+parK0,0.47500000000000003,0.05,0.9,Multiplicative
+parK1,0.255,0.01,0.5,Multiplicative
+parK2,0.1005,0.001,0.2,Multiplicative
+parLP,0.6,0.2,1.0,Multiplicative
+parPERC,5.0,0.0,10.0,Multiplicative
+parUZL,50.0,0.0,100.0,Multiplicative
+parTT,0.0,-2.5,2.5,Additive
+parCFMAX,5.25,0.5,10.0,Multiplicative
+parCFR,0.05,0.0,0.1,Multiplicative
+parCWH,0.1,0.0,0.2,Multiplicative
+parBETAET,2.65,0.3,5.0,Multiplicative
+parC,0.5,0.0,1.0,Multiplicative
+rout_a,1.45,0.0,2.9,Multiplicative
+rout_b,3.25,0.0,6.5,Multiplicative

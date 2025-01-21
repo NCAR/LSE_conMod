@@ -1,0 +1,13 @@
+Parameter,Default,Lower,Upper,Method
+FC,525.0,50.0,1000.0,Multiplicative
+beta,3.5,1.0,6.0,Multiplicative
+LP,0.6,0.2,1.0,Multiplicative
+SFCF,2.75,0.5,5.0,Multiplicative
+TT,0.0,-2.5,2.5,Multiplicative
+CFMAX,5.25,0.5,10.0,Multiplicative
+k0,0.47500000000000003,0.05,0.9,Multiplicative
+k1,0.255,0.01,0.5,Multiplicative
+k2,0.1005,0.001,0.2,Multiplicative
+UZL,50.0,0.0,100.0,Multiplicative
+PERC,50.0,0.0,100.0,Multiplicative
+MAXBAS,8.0,1.0,15.0,Multiplicative
