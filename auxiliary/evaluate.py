@@ -66,6 +66,9 @@ def cal_metrics(obs, sim, outfile_metric='', overwrite=True):
             return dfout
     
     # deal with nan
+    obs = np.asarray(obs)
+    sim = np.asarray(sim)
+    
     ind = (~np.isnan(obs)) & (~np.isnan(sim))
     obs = obs[ind]
     sim = sim[ind]

@@ -15,7 +15,8 @@ from pymoo.termination import get_termination
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from multiprocessing import Pool
 
-sys.path.append('/glade/u/home/guoqiang/CTSM_repos/ctsm_optz/MO-ASMO/src/')
+# sys.path.append('/glade/u/home/guoqiang/CTSM_repos/ctsm_optz/MO-ASMO/src/')
+sys.path.append('/beegfs/sets/aw-ciroh/projects/tmpdir/src')
 import sampling, gp, NSGA2
 
 
