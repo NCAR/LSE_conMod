@@ -36,7 +36,7 @@ else:
 run_CFE = True # if False, HBV won't be run. this can be used when you know model simulations have been generated
 run_LSE = True # if False, only run initial sampling + model simulation (stop before LSE)
 
-print('Configuration file:',config_file)
+print('Configuration file:', config_file)
 print('Processing iteration', iter_now)
 print('CPU number:', ncpu)
 
@@ -64,12 +64,13 @@ if iter_now == 0 and external_iter0 == False:
     
     file_parameter_list = config['data']['file_parameter_list']
     inpath_data = config['data']['inpath_data']
+    IDfile = config['data']['IDfile']
     
     print('sampling_method:', sampling_method)
     print('num_init:', num_init)
     print('outpath_parent:', outpath_parent)
     
-    selected_camels = load_Yalan_selected_camels_id(inpath_data)
+    selected_camels = load_Yalan_selected_camels_id(inpath_data, IDfile)
     print(len(selected_camels))
     
     # Generate initial samples
@@ -101,6 +102,7 @@ config_template = config['model']['config_temp']
 
 inpath_data = config['data']['inpath_data']
 file_parameter_list = config['data']['file_parameter_list']
+IDfile = config['data']['IDfile']
 
 outpath_parent = config["output"]["outpath_parent"]
 
@@ -125,7 +127,7 @@ startDate = train_run_period[0]
 endDate = train_run_period[1]
 print("run model period:", startDate, "-", endDate)
 
-forcing_train, target_train, attr_train, date_train, forcingLst, allbasin_IDs, attrLst = load_Yalan_data(inpath_data, startDate, endDate)
+forcing_train, target_train, attr_train, date_train, forcingLst, allbasin_IDs, attrLst = load_Yalan_data(inpath_data, startDate, endDate, IDfile)
 print("forcing shape", forcing_train.shape)
 
 num_basin = len(allbasin_IDs)
@@ -161,18 +163,20 @@ else:
         Ptar = forcing_train[tarbasin, :, forcingLst.index("prcp")][:, np.newaxis]
         Ttar = forcing_train[tarbasin, :, forcingLst.index("tmean")][:, np.newaxis]
         PETtar = forcing_train[tarbasin, :, forcingLst.index("pet")][:, np.newaxis]
+        AREAtar = attr_train[tarbasin, attrLst.index("area_gages2")]
+        DEPTHtar = attr_train[tarbasin, attrLst.index("soil_depth_statsgo")]
 
         eval_obs = target_train[tarbasin, :, 0][eval_indexStart : eval_indexEnd + 1]
 
         if ncpu == 1:
             # serial
             for tarparam in range(num_trial):
-                run_modelflow_OneBasin_OneParamSet(model, tarparam, iter_now, gageID, tarbasin, Ptar, Ttar, PETtar, config_template,
-                                                   outpath_parent, outpath_basin, eval_indexStart, eval_indexEnd, eval_obs)
+                run_modelflow_OneBasin_OneParamSet(model, tarparam, iter_now, gageID, tarbasin, Ptar, Ttar, PETtar, AREAtar, DEPTHtar,
+                                                   config_template, outpath_parent, outpath_basin, eval_indexStart, eval_indexEnd, eval_obs)
         else:
             # parallel
-            alltrial = [(model, tarparam, iter_now, gageID, tarbasin, Ptar, Ttar, PETtar, config_template, outpath_parent,
-                         outpath_basin, eval_indexStart, eval_indexEnd, eval_obs) for tarparam in range(num_trial)]
+            alltrial = [(model, tarparam, iter_now, gageID, tarbasin, Ptar, Ttar, PETtar, AREAtar, DEPTHtar, config_template,
+                        outpath_parent, outpath_basin, eval_indexStart, eval_indexEnd, eval_obs) for tarparam in range(num_trial)]
             
             with multiprocessing.Pool(processes=ncpu) as pool:
                 pool.starmap(run_modelflow_OneBasin_OneParamSet, alltrial)

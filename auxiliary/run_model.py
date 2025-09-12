@@ -14,7 +14,7 @@ sys.path.append('../CFE/')
 from runCFE import run_CFE_OneBasin_OneParamSet, load_CFE_output
 
 
-def run_modelflow_OneBasin_OneParamSet(model, tarparam, iter, gageID, tarbasin, Ptar, Ttar, PETtar, config_template, outpath_parent, outpath_basin, eval_indexStart, eval_indexEnd, eval_obs):
+def run_modelflow_OneBasin_OneParamSet(model, tarparam, iter, gageID, tarbasin, Ptar, Ttar, PETtar, AREAtar, DEPTHtar, config_template, outpath_parent, outpath_basin, eval_indexStart, eval_indexEnd, eval_obs):
     
     # Target parameter set
     file_paramset = f'{outpath_parent}/{gageID}/param_sets/paramset_iter{iter}_trial{tarparam}.pkl'
@@ -25,7 +25,8 @@ def run_modelflow_OneBasin_OneParamSet(model, tarparam, iter, gageID, tarbasin, 
     if model == "HBV":
         run_HBV_OneBasin_OneParamSet(Ptar, Ttar, PETtar, file_paramset, outfile)
     elif model == "CFE":
-        run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, file_paramset, outfile, config_template)
+        qobs = run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_paramset, outfile, config_template)
+        eval_obs = qobs[eval_indexStart:eval_indexEnd+1]
     else:
         raise ValueError("Invalid value provided")
 
@@ -34,10 +35,10 @@ def run_modelflow_OneBasin_OneParamSet(model, tarparam, iter, gageID, tarbasin, 
     hbv_out = load_HBV_output(outfile)
     
     # get output depending on model
-    # CHANGE LATER
     if model == "HBV":
         eval_sim = hbv_out['flow_sim'][eval_indexStart:eval_indexEnd+1]
     elif model == "CFE":
+        # eval_sim = hbv_out['flow_sim'][eval_indexStart:eval_indexEnd+1]
         eval_sim = hbv_out['land_surface_water__runoff_depth'][eval_indexStart:eval_indexEnd+1]
     
     df_tar_metric = cal_metrics(eval_obs, eval_sim, outfile_metric, overwrite=False)

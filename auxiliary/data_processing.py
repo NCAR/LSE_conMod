@@ -76,19 +76,29 @@ def load_Yalan_data(inpath, startDate=None, endDate=None, IDfile=''):
     for i in range(target_train.shape[0]):
         flowi = target_train[i, :, :]
         areai = attr_train[i, indarea]
-        target_train[i, :, :] = flow_unit_conversion(flowi, areai, mode='cfs_to_mmd')
+        target_train[i, :, :] = flow_unit_conversion(flowi, areai, mode='cfs_to_mhr')
     
     return forcing_train, target_train, attr_train, newTime, forcingLst, selected_camels, attrLst
 
 
-def flow_unit_conversion(flow_data, basin_area, mode='cfs_to_mmd'):
-    # mode==cfs_to_mmd: convert flow_data from ft3/s to mm/day
-    # mode==mmd_to_cdf: convert flow_data from mm/day to ft3/s
-    # basin_area unit: km2
+def flow_unit_conversion(flow_data, basin_area=None, mode='cfs_to_mmd'):
+    # mode == 'cfs_to_mmd': convert flow_data from ft³/s to mm/day
+    # mode == 'mmd_to_cfs': convert flow_data from mm/day to ft³/s
+    # mode == 'cfs_to_mhr': convert flow_data from ft³/s to m/h 
+    # mode == 'mhr_to_cfs': convert flow_data from m/h (depth over basin) to ft³/s
+    # basin_area unit: km²
+
     if mode == 'cfs_to_mmd':
-        return (flow_data * 0.0283168 * 3600 * 24) / (basin_area * (10 ** 6)) * 10 ** 3
+        return (flow_data * 0.0283168 * 3600 * 24) / (basin_area * 1e6) * 1e3
     elif mode == 'mmd_to_cfs':
-        return flow_data * ((basin_area * (10 ** 6)) * (10 ** (-3))) / (0.0283168 * 3600 * 24)
+        return flow_data * (basin_area * 1e6 * 1e-3) / (0.0283168 * 3600 * 24)
+    elif mode == 'cfs_to_mhr':
+        return (flow_data * 0.0283168 * 3600) / (basin_area * 1e6)
+    elif mode == 'mhr_to_cfs':
+        return flow_data * (basin_area * 1e6) / (0.0283168 * 3600)
+    else:
+        raise ValueError("Invalid mode. Choose from 'cfs_to_mmd', 'mmd_to_cfs', 'cfs_to_mhr', or 'mhr_to_cfs'.")
+
 
 
 # forcing / flow / basin attribute data

@@ -1,4 +1,6 @@
+import os
 import time
+import xarray as xr
 import numpy as np
 import pandas as pd
 import sys
@@ -178,8 +180,8 @@ class BMI_CFE(Bmi):
         self.actual_et_from_soil_m_per_timestep = 0
         # ________________________________________________________
         # Set these values now that we have the information from the configuration file.
-        self.runoff_queue_m_per_timestep = np.zeros(len(self.giuh_ordinates) + 1)
-        self.num_giuh_ordinates = len(self.giuh_ordinates)
+        self.runoff_queue_m_per_timestep = np.zeros(self.giuh_ordinates.size + 1)
+        self.num_giuh_ordinates = self.giuh_ordinates.size # len(self.giuh_ordinates)
         self.num_lateral_flow_nash_reservoirs = self.nash_storage.shape[0]
 
         # ________________________________________________
@@ -508,7 +510,19 @@ class BMI_CFE(Bmi):
 
     # ________________________________________________________
     def load_forcing_file(self):
-        self.forcing_data = pd.read_csv(self.forcing_file)
+        # Get the file extension
+        _, ext = os.path.splitext(self.forcing_file)
+
+        if ext.lower() == '.csv':
+            self.forcing_data = pd.read_csv(self.forcing_file)
+
+        elif ext.lower() == '.nc':
+            ds = xr.open_dataset(self.forcing_file)
+            self.forcing_data = ds.to_dataframe().reset_index()
+            self.forcing_data.rename(columns={'date': 'time'}, inplace=True)
+
+        else:
+            raise ValueError(f"Unsupported file type: {ext}")
 
     # ________________________________________________________
     def load_unit_test_data(self):
