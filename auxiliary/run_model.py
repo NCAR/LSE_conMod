@@ -39,7 +39,7 @@ def run_modelflow_OneBasin_OneParamSet(model, tarparam, iter, gageID, tarbasin, 
         eval_sim = hbv_out['flow_sim'][eval_indexStart:eval_indexEnd+1]
     elif model == "CFE":
         # eval_sim = hbv_out['flow_sim'][eval_indexStart:eval_indexEnd+1]
-        eval_sim = hbv_out['land_surface_water__runoff_depth'][eval_indexStart:eval_indexEnd+1]
+        eval_sim = hbv_out['runoff_depth_mm'][eval_indexStart:eval_indexEnd+1]
     
     df_tar_metric = cal_metrics(eval_obs, eval_sim, outfile_metric, overwrite=False)
     

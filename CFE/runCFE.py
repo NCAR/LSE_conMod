@@ -259,6 +259,7 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
     else:
         outputs = cfe_instance.get_output_var_names()
         output_lists = {output:[] for output in outputs}
+        output_lists["runoff_depth_mm"] = []
         
         forcingFile = True # use the forcing file specified in the CFE
         
@@ -266,7 +267,7 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
             ds = xr.open_dataset(cfe_instance.forcing_file) # aorc forcings are .nc files
             df_forcing = ds.to_dataframe().reset_index()
             
-            for n, precip in enumerate(df_forcing['APCP_surface'][:12418]):
+            for n, precip in enumerate(df_forcing['APCP_surface']):
                 # if n >= len(PETtar):
                 #     break
                 # pet = PETtar[n].item()
@@ -277,8 +278,9 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
                 cfe_instance.update()
 
                 for output in outputs:
-                    if output == "atmosphere_water__time_integral_of_precipitation_mass_flux":
-                        output_lists[output].append(cfe_instance.get_value(output) * 1000.0) # convert to mm/hr
+                    if output == "land_surface_water__runoff_depth":
+                        output_lists["runoff_depth_mm"].append(cfe_instance.get_value(output) * 1000.0) # convert to mm/hr
+                        output_lists[output].append(cfe_instance.get_value(output)) 
                     else:
                         output_lists[output].append(cfe_instance.get_value(output))
 
@@ -301,7 +303,7 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
         
         # convert values to np arrays
         #output_lists["flow_sim"] = convert_to_daily(np.array(output_lists["land_surface_water__runoff_depth"])) # convert to mm/day
-        output_lists["land_surface_water__runoff_depth"] = route_flow(routingparam_dict, output_lists["land_surface_water__runoff_depth"]) # route values
+        # output_lists["runoff_depth_mm"] = route_flow(routingparam_dict, output_lists["runoff_depth_mm"]) # route values
         output_arrays = {key: np.array(value) for key, value in output_lists.items()} # convert to numpy array for speed
                 
         print("Saving output file to ", outfile)        
