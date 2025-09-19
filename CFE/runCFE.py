@@ -310,4 +310,5 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
         save_CFE_output(outfile, output_arrays)
         
         qobs = df_forcing["qobs_mm_per_hour"]
-        return qobs # compare to AORC out flow
+        qobs_filled = qobs.fillna(method="ffill")
+        return qobs_filled # compare to AORC out flow
