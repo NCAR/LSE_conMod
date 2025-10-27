@@ -76,7 +76,7 @@ def load_Yalan_data(inpath, startDate=None, endDate=None, IDfile=''):
     for i in range(target_train.shape[0]):
         flowi = target_train[i, :, :]
         areai = attr_train[i, indarea]
-        target_train[i, :, :] = flow_unit_conversion(flowi, areai, mode='cfs_to_mhr')
+        target_train[i, :, :] = flow_unit_conversion(flowi, areai)
     
     return forcing_train, target_train, attr_train, newTime, forcingLst, selected_camels, attrLst
 

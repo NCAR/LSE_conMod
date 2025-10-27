@@ -19,6 +19,11 @@ def run_modelflow_OneBasin_OneParamSet(model, tarparam, iter, gageID, tarbasin, 
     # Target parameter set
     file_paramset = f'{outpath_parent}/{gageID}/param_sets/paramset_iter{iter}_trial{tarparam}.pkl'
 
+    # look at ~5 years with a year spin up
+    if model == "CFE":
+        eval_indexStart = 8760
+        eval_indexEnd = 52608
+    
     # Run selected model
     # HBV does not need a config file
     outfile = f'{outpath_basin}/hbv_iter{iter}_trial{tarparam}.pkl'
@@ -143,8 +148,6 @@ def extract_best_paramset_OneBasin_AllIter(outfile_optmz_paramset, path_archive,
         f.write(f'iter: {best_trial}\n')
     
     
-
-
 def run_model_on_best_paramset(outfile_optmz_paramset, outfile_optmz_simu, outfile_metric, path_archive, iterend, P, T, PET, flowobs, eval_indexStart, eval_indexEnd, external_iter0_path=''):
 
     extract_best_paramset_OneBasin_AllIter(outfile_optmz_paramset, path_archive, iterend, objfunc='nse', method='max', external_iter0_path=external_iter0_path)

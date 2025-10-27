@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 from scipy.special import gamma 
 import bmi_cfe
+from runSnow import shm_snow_step
 
 # CODE FROM HBV.PY
 def UH_gamma(a, b, lenF=10):
@@ -121,8 +122,11 @@ def load_CFE_param(infile_param, area, depth):
         param1_dict["giuh_ordinates"] = row['giuh_ordinates'].values[0]
         if len(param1_dict["giuh_ordinates"]) == 0:
             raise ValueError(f"No GIUH ordinates found for basin_id {gageID}")
+    # set up default values (for now)
     else:
-        raise ValueError(f"basin_id {gageID} not found in CSV")
+        param1_dict["alpha_fc"] = 0.33
+        param1_dict["giuh_ordinates"] = [0.35, 0.24, 0.17, 0.10, 0.06]
+        # raise ValueError(f"basin_id {gageID} not found in CSV")
         
     param2_dict = {}
     for p in param2:
@@ -221,15 +225,6 @@ def generate_config(param_dict, file_paramset, config_template):
 
     return output_path
 
-# convert the m/hr to mm/day
-# CURRENTLY JUST DOING M/DAY
-def convert_to_daily(hourly):
-    n = len(hourly) - (len(hourly) % 24)
-    hourly_trimmed = hourly[:n]
-    daily = hourly_trimmed.reshape(-1, 24)
-    daily = daily.mean(axis=1) # may need to convert to sum
-    return daily
-
 def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_paramset, outfile, config_template):
     '''
     Use the Basic Model Interface to interact with the CFE to 
@@ -244,16 +239,46 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
     # initialize
     cfe_instance = bmi_cfe.BMI_CFE(CFEconfig_file)
     cfe_instance.initialize()
+    
+    aorc, nldas = False, False
+    # QObs is built into this data so we don't need to worry about it
+    if "aorc" in config_template.lower():
+        aorc = True
+        ds = xr.open_dataset(cfe_instance.forcing_file) # aorc forcings are .nc files
+        df_forcing = ds.to_dataframe().reset_index()
+    # QObs is from a separate file so we can grab it here
+    # NEED TO SETUP DIFFERENTLY
+    elif "nldas" in config_template.lower():
+        nldas = True
+        with open(cfe_instance.forcing_file, 'r') as f:
+            df_forcing = pd.read_csv(f)
+            df_forcing['date'] = pd.to_datetime(df_forcing['date'])
+
+        with open(cfe_instance.compare_results_file, 'r') as f:
+            df_obs = pd.read_csv(f)
+            df_obs['date'] = pd.to_datetime(df_obs['date'])
+
+        # add obs to the forcings
+        df_forcing = pd.merge(
+            df_forcing,
+            df_obs[['date', 'QObs(mm/h)', 'QObs_CAMELS(mm/h)']],
+            on='date',
+            how='inner'
+        )
+
+        df_forcing = df_forcing.rename(columns = {'date': 'time', 'QObs_CAMELS(mm/h)': 'qobs_mm_per_hour'})
+    else:
+        print("Invalid Path String")
+        
+    # run daymet forcings
+    # aorc = False
+    # nldas = False
 
     if os.path.isfile(outfile):
         print("CFE output file exists: ", outfile)
         print("Skip CFE Modeling")
         
-        ds = xr.open_dataset(cfe_instance.forcing_file) # aorc forcings are .nc files
-        df_forcing = ds.to_dataframe().reset_index()
-        
-        qobs = df_forcing["qobs_mm_per_hour"]
-        return qobs # compare to AORC out flow
+        return df_forcing["qobs_mm_per_hour"]
 
     # initialize => update for each time step
     else:
@@ -261,54 +286,78 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
         output_lists = {output:[] for output in outputs}
         output_lists["runoff_depth_mm"] = []
         
-        forcingFile = True # use the forcing file specified in the CFE
-        
-        if forcingFile:
-            ds = xr.open_dataset(cfe_instance.forcing_file) # aorc forcings are .nc files
-            df_forcing = ds.to_dataframe().reset_index()
-            
-            for n, precip in enumerate(df_forcing['APCP_surface']):
-                # if n >= len(PETtar):
-                #     break
-                # pet = PETtar[n].item()
-                
-                precip_m = precip / 1000.0
+        # setup snow pack
+        snow_storage = 0.0
+
+        if aorc:
+            for precip, temp in zip(df_forcing['APCP_surface'], df_forcing['TMP_2maboveground']):
+                # run the snow routine
+                melt, rain, snow_storage = shm_snow_step(precip, temp, snow_storage, T_thresh=0.0, DDF=3.0)
+                precip_m = (rain + melt) / 1000.0 # "effective" precip
+
+                # precip_m = precip / 1000.0
                 cfe_instance.set_value('atmosphere_water__time_integral_of_precipitation_mass_flux', precip_m)
-                #cfe_instance.set_value('water_potential_evaporation_flux', pet)
                 cfe_instance.update()
 
                 for output in outputs:
                     if output == "land_surface_water__runoff_depth":
-                        output_lists["runoff_depth_mm"].append(cfe_instance.get_value(output) * 1000.0) # convert to mm/hr
+                        output_lists["runoff_depth_mm"].append(cfe_instance.get_value(output) * 1000.0) # convert to mm
                         output_lists[output].append(cfe_instance.get_value(output)) 
                     else:
                         output_lists[output].append(cfe_instance.get_value(output))
+        elif nldas:
+            for precip, temp, pet in zip(df_forcing['total_precipitation'], df_forcing['temperature'], df_forcing["potential_evaporation"]):
+                # run the snow routine
+                melt, rain, snow_storage = shm_snow_step(precip, temp, snow_storage, T_thresh=0.0, DDF=3.0)
+                precip_m = (rain + melt) / 1000.0 # "effective" precip
 
-#         else:
-#             n_steps = len(Ptar)
+                # precip_m = precip / 1000.0
+                cfe_instance.set_value('atmosphere_water__time_integral_of_precipitation_mass_flux', precip_m)
+                cfe_instance.update()
 
-#             for n in range(n_steps):
-#                 precip = Ptar[n].item()
-#                 # temp = Ttar[n].item()
-#                 # pet = PETtar[n].item()
-
-#                 cfe_instance.set_value('atmosphere_water__time_integral_of_precipitation_mass_flux', precip) # assuming precip is m/hr
-#                 # cfe_instance.set_value('water_potential_evaporation_flux', pet)
-#                 cfe_instance.update()
-#                 for output in outputs:
-#                     output_lists[output].append(cfe_instance.get_value(output))
+                for output in outputs:
+                    if output == "land_surface_water__runoff_depth":
+                        output_lists["runoff_depth_mm"].append(cfe_instance.get_value(output) * 1000.0) # convert to mm
+                        output_lists[output].append(cfe_instance.get_value(output)) 
+                    else:
+                        output_lists[output].append(cfe_instance.get_value(output))
+        else:
+            n_steps = min(len(Ptar), len(Ttar))
             
+            for n in range(n_steps):
+                precip = Ptar[n].item()
+                temp = Ttar[n].item()
+                # pet = PETtar[n].item()
+                
+                # run the snow routine
+                melt, rain, snow_storage = shm_snow_step(precip, temp, snow_storage, T_thresh=0.0, DDF=3.0)
+                precip_m = (rain + melt) / 1000.0 # "effective" precip
+
+                # precip_m = precip / 1000.0
+                cfe_instance.set_value('atmosphere_water__time_integral_of_precipitation_mass_flux', precip_m)
+                cfe_instance.update()
+                
+                for output in outputs:
+                    if output == "land_surface_water__runoff_depth":
+                        output_lists["runoff_depth_mm"].append(cfe_instance.get_value(output) * 1000.0) # convert to mm
+                        output_lists[output].append(cfe_instance.get_value(output)) 
+                    else:
+                        output_lists[output].append(cfe_instance.get_value(output))
+                
         # finalize
         cfe_instance.finalize(print_mass_balance=False)
         
         # convert values to np arrays
-        #output_lists["flow_sim"] = convert_to_daily(np.array(output_lists["land_surface_water__runoff_depth"])) # convert to mm/day
-        # output_lists["runoff_depth_mm"] = route_flow(routingparam_dict, output_lists["runoff_depth_mm"]) # route values
+        output_lists["runoff_depth_mm"] = route_flow(routingparam_dict, output_lists["runoff_depth_mm"]) # route values
         output_arrays = {key: np.array(value) for key, value in output_lists.items()} # convert to numpy array for speed
                 
         print("Saving output file to ", outfile)        
         save_CFE_output(outfile, output_arrays)
         
+        
+        # qobs = df_forcing["QObs_mm_per_day"] 
+        # df_forcing['date'] = pd.to_datetime(df_forcing['date'])
+        # df_forcing = df_forcing.set_index('date')
         qobs = df_forcing["qobs_mm_per_hour"]
-        qobs_filled = qobs.fillna(method="ffill")
-        return qobs_filled # compare to AORC out flow
+        # qobs_filled = qobs.interpolate(method='time').ffill().bfill()
+        return qobs # compare out flow

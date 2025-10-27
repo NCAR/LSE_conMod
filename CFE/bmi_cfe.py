@@ -126,9 +126,15 @@ class BMI_CFE(Bmi):
         # If it is stand alone, then load in the forcing and read the time from the forcig file
         if self.stand_alone == 1:
             self.load_forcing_file()
-            self.current_time = pd.to_datetime(
-                self.forcing_data["time"][self.current_time_step]
-            )
+            
+            if "time" in self.forcing_data:
+                self.current_time = pd.to_datetime(
+                    self.forcing_data["time"][self.current_time_step]
+                )
+            else:
+                self.current_time = pd.to_datetime(
+                    self.forcing_data["date"][self.current_time_step]
+                )
         # ________________________________________________
         # In order to check mass conservation at any time
         self.reset_volume_tracking()
@@ -536,8 +542,11 @@ class BMI_CFE(Bmi):
         self.load_forcing_file()
         self.load_unit_test_data()
 
-        self.current_time = pd.Timestamp(self.forcing_data["time"][0])
-
+        if "time" in self.forcing_data:
+            self.current_time = pd.Timestamp(self.forcing_data["time"][0])
+        else:
+            self.current_time = pd.Timestamp(self.forcing_data["date"][0])
+            
         for t, precipitation_input in enumerate(
             self.forcing_data["precip_rate"] * 3600
         ):
