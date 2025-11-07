@@ -93,7 +93,8 @@ def load_CFE_param(infile_param, area, depth):
     
     param1 = ['soil_params.bb', 'soil_params.satdk', 'soil_params.satpsi', 'soil_params.slop', 'soil_params.smcmax', 'soil_params.wltsmc', 'max_gw_storage', 
               'Cgw', 'expon', 'K_nash', 'K_lf', 'nash_storage', 'a_Xinanjiang_inflection_point', 'b_Xinanjiang_shape_param', 'x_Xinanjiang_shape_param']
-    param2 = ['rout_a', 'rout_b'] 
+    param2 = ['rout_a', 'rout_b']
+    param3 = ['DDF', 'T_thresh']
 
     param1_dict = {}
     for p in param1:
@@ -131,8 +132,12 @@ def load_CFE_param(infile_param, area, depth):
     param2_dict = {}
     for p in param2:
         param2_dict[p] = df.loc[df['Parameter']==p]['Value'].iloc[0]
+        
+    param3_dict = {}
+    for p in param3:
+        param3_dict[p] = df.loc[df['Parameter']==p]['Value'].iloc[0]
 
-    return param1_dict, param2_dict
+    return param1_dict, param2_dict, param3_dict
 
 # Ensure giuh_ordinates column is always a list of floats
 def normalize_giuh(x):
@@ -231,7 +236,7 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
     run it with the given parameters. 
     '''
     
-    CFEparam_dict, routingparam_dict = load_CFE_param(file_paramset, AREAtar, DEPTHtar)
+    CFEparam_dict, routingparam_dict, snowparam_dict = load_CFE_param(file_paramset, AREAtar, DEPTHtar)
     CFEconfig_file = generate_config(CFEparam_dict, file_paramset, config_template) 
         
     ##### run CFE using BMI #####
@@ -268,11 +273,9 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
 
         df_forcing = df_forcing.rename(columns = {'date': 'time', 'QObs_CAMELS(mm/h)': 'qobs_mm_per_hour'})
     else:
-        print("Invalid Path String")
-        
-    # run daymet forcings
-    # aorc = False
-    # nldas = False
+        # run daymet
+        nldas = False
+        aorc = False
 
     if os.path.isfile(outfile):
         print("CFE output file exists: ", outfile)
@@ -286,13 +289,15 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
         output_lists = {output:[] for output in outputs}
         output_lists["runoff_depth_mm"] = []
         
-        # setup snow pack
+        # setup snow routine variables
         snow_storage = 0.0
+        DDF = snowparam_dict["DDF"]
+        T_thresh = snowparam_dict["T_thresh"]
 
         if aorc:
             for precip, temp in zip(df_forcing['APCP_surface'], df_forcing['TMP_2maboveground']):
                 # run the snow routine
-                melt, rain, snow_storage = shm_snow_step(precip, temp, snow_storage, T_thresh=0.0, DDF=3.0)
+                melt, rain, snow_storage = shm_snow_step(precip, temp, snow_storage, T_thresh=T_thresh, DDF=DDF)
                 precip_m = (rain + melt) / 1000.0 # "effective" precip
 
                 # precip_m = precip / 1000.0
@@ -308,11 +313,13 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
         elif nldas:
             for precip, temp, pet in zip(df_forcing['total_precipitation'], df_forcing['temperature'], df_forcing["potential_evaporation"]):
                 # run the snow routine
-                melt, rain, snow_storage = shm_snow_step(precip, temp, snow_storage, T_thresh=0.0, DDF=3.0)
+                melt, rain, snow_storage = shm_snow_step(precip, temp, snow_storage, T_thresh=T_thresh, DDF=DDF)
                 precip_m = (rain + melt) / 1000.0 # "effective" precip
+                pet_m = pet * 2.7778e-7 # unsure if this is correct, assuming it is originally mm/hr
 
                 # precip_m = precip / 1000.0
                 cfe_instance.set_value('atmosphere_water__time_integral_of_precipitation_mass_flux', precip_m)
+                cfe_instance.set_value('water_potential_evaporation_flux', pet_m)
                 cfe_instance.update()
 
                 for output in outputs:
@@ -322,19 +329,21 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
                     else:
                         output_lists[output].append(cfe_instance.get_value(output))
         else:
-            n_steps = min(len(Ptar), len(Ttar))
+            n_steps = min(len(Ptar), len(Ttar), len(PETtar))
             
             for n in range(n_steps):
                 precip = Ptar[n].item()
                 temp = Ttar[n].item()
-                # pet = PETtar[n].item()
+                pet = PETtar[n].item()
                 
                 # run the snow routine
-                melt, rain, snow_storage = shm_snow_step(precip, temp, snow_storage, T_thresh=0.0, DDF=3.0)
+                melt, rain, snow_storage = shm_snow_step(precip, temp, snow_storage, T_thresh=T_thresh, DDF=DDF)
                 precip_m = (rain + melt) / 1000.0 # "effective" precip
+                pet_m = pet * 2.7778e-7 # unsure if correct, assuming it is originally mm/hr
 
                 # precip_m = precip / 1000.0
                 cfe_instance.set_value('atmosphere_water__time_integral_of_precipitation_mass_flux', precip_m)
+                cfe_instance.set_value('water_potential_evaporation_flux', pet_m)
                 cfe_instance.update()
                 
                 for output in outputs:
@@ -354,7 +363,9 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
         print("Saving output file to ", outfile)        
         save_CFE_output(outfile, output_arrays)
         
-        
+        if aorc is False and nldas is False:
+            return False
+
         # qobs = df_forcing["QObs_mm_per_day"] 
         # df_forcing['date'] = pd.to_datetime(df_forcing['date'])
         # df_forcing = df_forcing.set_index('date')

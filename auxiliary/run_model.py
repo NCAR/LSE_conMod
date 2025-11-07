@@ -18,11 +18,6 @@ def run_modelflow_OneBasin_OneParamSet(model, tarparam, iter, gageID, tarbasin, 
     
     # Target parameter set
     file_paramset = f'{outpath_parent}/{gageID}/param_sets/paramset_iter{iter}_trial{tarparam}.pkl'
-
-    # look at ~5 years with a year spin up
-    if model == "CFE":
-        eval_indexStart = 8760
-        eval_indexEnd = 52608
     
     # Run selected model
     # HBV does not need a config file
@@ -31,7 +26,10 @@ def run_modelflow_OneBasin_OneParamSet(model, tarparam, iter, gageID, tarbasin, 
         run_HBV_OneBasin_OneParamSet(Ptar, Ttar, PETtar, file_paramset, outfile)
     elif model == "CFE":
         qobs = run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_paramset, outfile, config_template)
-        eval_obs = qobs[eval_indexStart:eval_indexEnd+1]
+        if qobs is not False:
+            eval_indexStart = 8760
+            eval_indexEnd = 52608
+            eval_obs = qobs[eval_indexStart:eval_indexEnd+1]
     else:
         raise ValueError("Invalid value provided")
 

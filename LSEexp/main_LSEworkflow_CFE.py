@@ -109,6 +109,8 @@ outpath_parent = config["output"]["outpath_parent"]
 train_run_period = config["dates"]["train_run_period"]
 train_eval_period = config["dates"]["train_eval_period"]
 eval_indexStart, eval_indexEnd = get_index_of_nested_period(train_run_period, train_eval_period)
+# eval_indexStart += 365
+# eval_indexEnd += 365
 
 sampling_method = config["emulator"]["sampling_method"]
 num_init = config["emulator"]["num_init"]
