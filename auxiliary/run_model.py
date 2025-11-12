@@ -25,10 +25,11 @@ def run_modelflow_OneBasin_OneParamSet(model, tarparam, iter, gageID, tarbasin, 
     if model == "HBV":
         run_HBV_OneBasin_OneParamSet(Ptar, Ttar, PETtar, file_paramset, outfile)
     elif model == "CFE":
-        qobs = run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_paramset, outfile, config_template)
+        qobs = run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_paramset, outfile, config_template, 52620 * 2)
+        # only if using AORC or NLDAS
         if qobs is not False:
             eval_indexStart = 8760
-            eval_indexEnd = 52608
+            eval_indexEnd = 52608 * 2
             eval_obs = qobs[eval_indexStart:eval_indexEnd+1]
     else:
         raise ValueError("Invalid value provided")

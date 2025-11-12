@@ -72,7 +72,7 @@ def UH_conv(x, UH):
 def route_flow(routing_params, Qsim, routing=True):
     if routing:
         # Generate unit hydrograph
-        UH = UH_gamma(routing_params['rout_a'], routing_params['rout_b'], lenF=15)
+        UH = UH_gamma(routing_params['gamma_shape'], routing_params['gamma_scale'], lenF=15)
 
         # Perform routing
         Qsrout = UH_conv(Qsim, UH)
@@ -93,7 +93,7 @@ def load_CFE_param(infile_param, area, depth):
     
     param1 = ['soil_params.bb', 'soil_params.satdk', 'soil_params.satpsi', 'soil_params.slop', 'soil_params.smcmax', 'soil_params.wltsmc', 'max_gw_storage', 
               'Cgw', 'expon', 'K_nash', 'K_lf', 'nash_storage', 'a_Xinanjiang_inflection_point', 'b_Xinanjiang_shape_param', 'x_Xinanjiang_shape_param']
-    param2 = ['rout_a', 'rout_b']
+    param2 = ['gamma_shape', 'gamma_scale']
     param3 = ['DDF', 'T_thresh']
 
     param1_dict = {}
@@ -230,7 +230,7 @@ def generate_config(param_dict, file_paramset, config_template):
 
     return output_path
 
-def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_paramset, outfile, config_template):
+def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_paramset, outfile, config_template, endIndex):
     '''
     Use the Basic Model Interface to interact with the CFE to 
     run it with the given parameters. 
@@ -295,13 +295,15 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
         T_thresh = snowparam_dict["T_thresh"]
 
         if aorc:
-            for precip, temp in zip(df_forcing['APCP_surface'], df_forcing['TMP_2maboveground']):
+            for precip, temp in zip(df_forcing['APCP_surface'][:endIndex], df_forcing['TMP_2maboveground'][:endIndex]):
                 # run the snow routine
                 melt, rain, snow_storage = shm_snow_step(precip, temp, snow_storage, T_thresh=T_thresh, DDF=DDF)
                 precip_m = (rain + melt) / 1000.0 # "effective" precip
+                pet_m = pet * 2.7778e-7 # unsure if correct, assuming it is originally mm/h
 
                 # precip_m = precip / 1000.0
                 cfe_instance.set_value('atmosphere_water__time_integral_of_precipitation_mass_flux', precip_m)
+                cfe_instance.set_value('water_potential_evaporation_flux', pet_m)
                 cfe_instance.update()
 
                 for output in outputs:
@@ -311,7 +313,7 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
                     else:
                         output_lists[output].append(cfe_instance.get_value(output))
         elif nldas:
-            for precip, temp, pet in zip(df_forcing['total_precipitation'], df_forcing['temperature'], df_forcing["potential_evaporation"]):
+            for precip, temp, pet in zip(df_forcing['total_precipitation'][:endIndex], df_forcing['temperature'][:endIndex], df_forcing["potential_evaporation"][:endIndex]):
                 # run the snow routine
                 melt, rain, snow_storage = shm_snow_step(precip, temp, snow_storage, T_thresh=T_thresh, DDF=DDF)
                 precip_m = (rain + melt) / 1000.0 # "effective" precip

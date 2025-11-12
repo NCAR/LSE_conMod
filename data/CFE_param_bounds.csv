@@ -14,7 +14,7 @@ nash_storage,0,0,0.1
 a_Xinanjiang_inflection_point,0.001,-0.493,0.493,-
 b_Xinanjiang_shape_param,0.261,0.001,10,-
 x_Xinanjiang_shape_param,0.182,0.5e-04,10,-
-rout_a,5.0,0.0,10.0,-
-rout_b,10.0,0.0,20.0,-
+gamma_shape,5.0,0.0,10.0,-
+gamma_scale,10.0,0.0,20.0,-
 DDF,3.0,0.5,10.0,mm/°C/day
 T_thresh,0.0,-3.0,3.0,°C
