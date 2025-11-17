@@ -299,9 +299,8 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
                 # run the snow routine
                 melt, rain, snow_storage = shm_snow_step(precip, temp, snow_storage, T_thresh=T_thresh, DDF=DDF)
                 precip_m = (rain + melt) / 1000.0 # "effective" precip
-                pet_m = pet * 2.7778e-7 # unsure if correct, assuming it is originally mm/h
+                # pet_m = pet * 2.7778e-7 # unsure if correct, assuming it is originally mm/h
 
-                # precip_m = precip / 1000.0
                 cfe_instance.set_value('atmosphere_water__time_integral_of_precipitation_mass_flux', precip_m)
                 cfe_instance.set_value('water_potential_evaporation_flux', pet_m)
                 cfe_instance.update()
@@ -319,7 +318,6 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
                 precip_m = (rain + melt) / 1000.0 # "effective" precip
                 pet_m = pet * 2.7778e-7 # unsure if this is correct, assuming it is originally mm/hr
 
-                # precip_m = precip / 1000.0
                 cfe_instance.set_value('atmosphere_water__time_integral_of_precipitation_mass_flux', precip_m)
                 cfe_instance.set_value('water_potential_evaporation_flux', pet_m)
                 cfe_instance.update()
@@ -340,10 +338,9 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
                 
                 # run the snow routine
                 melt, rain, snow_storage = shm_snow_step(precip, temp, snow_storage, T_thresh=T_thresh, DDF=DDF)
-                precip_m = (rain + melt) / 1000.0 # "effective" precip
-                pet_m = pet * 2.7778e-7 # unsure if correct, assuming it is originally mm/hr
+                precip_m = (rain + melt) * 0.001 / 24 # "effective" precip, assuming it is originally mm/day
+                pet_m = pet * 0.001 / 86400.0 # unsure if correct, assuming it is originally mm/day
 
-                # precip_m = precip / 1000.0
                 cfe_instance.set_value('atmosphere_water__time_integral_of_precipitation_mass_flux', precip_m)
                 cfe_instance.set_value('water_potential_evaporation_flux', pet_m)
                 cfe_instance.update()
