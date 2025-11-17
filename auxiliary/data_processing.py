@@ -97,7 +97,7 @@ def flow_unit_conversion(flow_data, basin_area=None, mode='cfs_to_mmd'):
     elif mode == 'mmhr_to_cfs':
         return flow_data * (basin_area * 1e6 * 1e-3) / (0.0283168 * 3600)
     else:
-        raise ValueError("Invalid mode. Choose from 'cfs_to_mmd', 'mmd_to_cfs', 'cfs_to_mhr', or 'mhr_to_cfs'.")
+        raise ValueError("Invalid mode. Choose from 'cfs_to_mmd', 'mmd_to_cfs', 'cfs_to_mmhr', or 'mmhr_to_cfs'.")
 
 
 
