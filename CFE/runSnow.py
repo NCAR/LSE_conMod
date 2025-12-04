@@ -12,17 +12,17 @@ def shm_snow_step(precip_mm, temp_C, snow_storage, T_thresh=0.0, DDF=3.0):
     One step of the SHM snow routine. Compare temperature and convert
     to snow or runoff depending on threshold. 
     
-    precip_mm : precipitation input [mm] this time step
-    temp_C    : temperature [°C] this time step
-    snow_storage : snowpack at beginning of step [mm]
-    T_thresh  : rain/snow threshold [°C]
-    DDF       : degree-day factor [mm/°C/day]
+    Parameters:
+        precip_mm : precipitation input [mm] this time step
+        temp_C    : temperature [°C] this time step
+        snow_storage : snowpack at beginning of step [mm]
+        T_thresh  : rain/snow threshold [°C]
+        DDF       : degree-day factor [mm/°C/day]
     
     Returns
-    -------
-    melt : snowmelt released [mm]
-    rain : rainfall passed directly [mm]
-    new_snow_storage : updated snowpack [mm]
+        melt : snowmelt released [mm]
+        rain : rainfall passed directly [mm]
+        new_snow_storage : updated snowpack [mm]
     """
     if temp_C <= T_thresh:
         # all precip stored as snow

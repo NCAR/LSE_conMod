@@ -1,5 +1,5 @@
 {
-    "forcing_file": "/home/m10870071/aw-ciroh/common/datasets/camels_aorc_hourly/time_series/{{gageID}}.nc",
+    "forcing_file": "/home/m10870071/aw-ciroh/common/datasets/camels_aorc_pet/time_series/{{gageID}}.nc",
     "catchment_area_km2":"{{area}}",
     "alpha_fc":"{{alpha_fc}}",
     "partition_scheme":"Schaake",
@@ -26,6 +26,6 @@
     "num_timesteps": 1,
     "stand_alone": 1,
     "unit_test": 1,
-    "compare_results_file": "/home/m10870071/aw-ciroh/common/datasets/camels_aorc_hourly/time_series/{{gageID}}.nc",
+    "compare_results_file": "/home/m10870071/aw-ciroh/common/datasets/camels_aorc_pet/time_series/{{gageID}}.nc",
     "soil_scheme": "classic"
 }

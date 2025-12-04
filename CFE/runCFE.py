@@ -1,5 +1,6 @@
 # Helper file to couple CFE to LSE similar to how the HBV is running 
-# Similar structure to ../HBV/HBV.py
+# Similar structure to ../HBV/HBV.py. Has a lot of the same code with
+# some minor adjustments to help run the CFE.
 # Created by Rhys Pulling
 
 import pickle, os, sys, re, json, ast
@@ -67,9 +68,20 @@ def UH_conv(x, UH):
 
     return Qr
 
-# use the gamma functions to route the runoff
 # CODE FROM HBV.PY
 def route_flow(routing_params, Qsim, routing=True):
+    '''
+    Uses the gamma functions to route the runoff from the 
+    CFE model. 
+    
+    Parameters:
+        routing_params: The shape and scale of the routing function
+        Qsim: The output values from the CFE model
+        
+    Returns:
+        np.ndarray
+            Routed output time series (1D array).
+    '''
     if routing:
         # Generate unit hydrograph
         UH = UH_gamma(routing_params['gamma_shape'], routing_params['gamma_scale'], lenF=15)
@@ -82,9 +94,22 @@ def route_flow(routing_params, Qsim, routing=True):
     
     return Qsrout
 
-# NEED TO SET UP TO GRAB PARAMS ACCURATELY
 def load_CFE_param(infile_param, area, depth):
-    # read CFE parameters from a pickle file
+    '''
+    Grabs the generated parameters from the pickle file and 
+    stores them in dictionaries to be used later on. 
+    
+    Parameters:
+        infile_param: The file where the parameters were stored
+        area: The area of the basin
+        depth: The soil depth of the basin
+        
+    Returns: 
+        Three Python dictionaries containing parameters
+            paramdict1: CFE model parameters
+            paramdict2: Routing parameters
+            paramdict3: Snow Routine parameters
+    '''
 
     try:
         df = pd.read_pickle(infile_param)
@@ -139,8 +164,20 @@ def load_CFE_param(infile_param, area, depth):
 
     return param1_dict, param2_dict, param3_dict
 
-# Ensure giuh_ordinates column is always a list of floats
 def normalize_giuh(x):
+    '''
+    Ensures the GIUH Ordinates grabbed for the model are
+    set up properly. This avoids any issues that arise 
+    from trying to place them in the config file for the 
+    CFE.
+    
+    Parameters:
+        x: The GIUH Ordinates
+        
+    Returns:
+        Python list
+            The correct set up for the GIUH ordinates
+    '''
     # If it's already a list, leave it
     if isinstance(x, list):
         return [float(i) for i in x]
@@ -156,21 +193,46 @@ def normalize_giuh(x):
     # Fallback: empty list
     return []
 
-# Store the cfe outputs to a pickle file for future use
 def save_CFE_output(filename, data, overwrite=True):
+    '''
+    Stores the CFE data in the specified pickle file to be 
+    grabbed later. 
+    
+    Parameters:
+        filename: The path/file to store the data in
+        data: The CFE output data
+    '''
     if ( not os.path.isfile(filename) ) or ( overwrite==True ):
         with open(filename, 'wb') as file:
             pickle.dump(data, file)
 
-# Grab the cfe outputs from a pickle file
 def load_CFE_output(filename):
+    '''
+    Loads the CFE data from the specified pickle file.
+    
+    Parameters: 
+        filename: The path/file to grab the data from
+        
+    Returns:
+        The data from the file.
+    '''
     with open(filename, 'rb') as file:
         data = pickle.load(file)
     return data
 
-# Function to replace specific values in the
-# template configuration
 def replace_placeholders(obj, param_dict):
+    '''
+    Helper function for generating the config file. 
+    Finds the specified parameter in the template and
+    recursively replaces it with the given values.
+    
+    Parameters:
+        obj: The config template
+        param_dict: The dictionary with the parameters
+    Returns:
+        String (file path)
+            The config file with the filled in parameters
+    '''
     if isinstance(obj, dict):
         return {k: replace_placeholders(v, param_dict) for k, v in obj.items()}
     elif isinstance(obj, list):
@@ -190,13 +252,25 @@ def replace_placeholders(obj, param_dict):
     else:
         return obj
 
-# replace the template with param values
 def generate_config(param_dict, file_paramset, config_template):
+    '''
+    Generate the BMI configuration file to run the CFE with. Grabs
+    the parameters from the dictionary and replaces them in the template
+    file. Stores in the specified path.
+    
+    Parameters:
+        param_dict: A dictionary holding the parameters for the model
+        file_paramset: The path to the generated parameters for the CFE model
+        config_template: The template for the 
+    Returns:
+        String (file path)
+            The config file with the filled in parameters
+    '''
     # get the template for the configuration file
     template_path = config_template
     
     # get the file path and add to config_file directory    
-    file_path = Path(file_paramset) # f'{outpath_parent}/{gageID}/param_sets/paramset_iter{iter}_trial{tarparam}.pkl'
+    file_path = Path(file_paramset) 
 
     # Extract parts
     gageID = file_path.parts[-3]  # gageID is two levels up from the file
@@ -230,10 +304,85 @@ def generate_config(param_dict, file_paramset, config_template):
 
     return output_path
 
-def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_paramset, outfile, config_template, endIndex):
+# I used this function to generate new AORC NetCDF files
+# so not necessarily needed any more
+def penman_monteith_pet_hourly(df, albedo=0.23, emissivity=0.98):
+    """
+    Compute hourly PET (mm/hr) using the ASCE Penman–Monteith equation.
+    Only used for our AORC data. 
+
+    Parameters:
+        df: Pandas dataframe containing...
+            TMP_2maboveground (°C)
+            PRES_surface (Pa)
+            DSWRF_surface (W/m2)
+            DLWRF_surface (W/m2)
+            SPFH_2maboveground (kg/kg)
+            UGRD_10maboveground (m/s)
+            VGRD_10maboveground (m/s)
+       
+    Returns:
+        Pandas DF
+            Includes the PET [mm/hr] in df as a new column
+    """
+   
+    T = df['TMP_2maboveground']                    # °C
+    P = df['PRES_surface'] / 1000.0                # convert Pa to kPa
+    q = df['SPFH_2maboveground'] / 1000.0          # convert from g/g to kg/kg (its a ratio so unsure if even needed)
+
+    sigma = 5.67e-8                            # Stefan–Boltzmann [W/m²K⁴]
+    R_sw_down = 0.77 * df['DSWRF_surface']     # net incoming shortwave (W/m²)
+    R_l_down = df['DLWRF_surface']            # incoming longwave (W/m²)
+    R_l_up   = 0.96 * sigma * (T + 273.15)**4
+    Rn_W = (R_sw_down + R_l_down - R_l_up)    # net radiation in W/m²
+    Rn = Rn_W * 0.0036 
+    
+    es = 0.6108 * np.exp(17.27 * T / (T + 237.3))  # saturation VP (kPa):contentReference[oaicite:8]{index=8}
+    ea = (q * P) / (0.622 + 0.378 * q)  # actual VP:contentReference[oaicite:9]{index=9}
+    Δ = (4098 * es) / ((T + 237.3)**2)             # slope of vapor pressure curve (kPa/°C)
+    γ = 0.000665 * P                               # psychrometric constant (kPa/°C)
+    VPD = es - ea   # vapor pressure deficit (kPa)
+    
+    wind10 = np.sqrt(df['UGRD_10maboveground']**2 + df['VGRD_10maboveground']**2)
+    u2 = wind10 * 0.748                           # wind at 2 m (m/s)
+    C_n, C_d = 37.0, 0.24                         # short-grass hourly constants:contentReference[oaicite:10]{index=10}:contentReference[oaicite:11]{index=11}
+    ET_num = 0.408 * Δ * (Rn - 0.0) + γ * (C_n/(T+273.15)) * u2 * VPD
+    ET_den = Δ + γ * (1 + C_d * u2)
+    df['potential_evaporation'] = ET_num / ET_den
+    
+    return df
+
+def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_paramset, outfile, config_template, runRouting=True, runSHM=True, endIndex=52620):
     '''
     Use the Basic Model Interface to interact with the CFE to 
-    run it with the given parameters. 
+    run it with the given parameters. Currently runs on either
+    AORC, NLDAS, or Yalan Data depending on the specified configuration
+    template. 
+    
+    It is currently built to run on any of those datasets. It can also 
+    run routing and/or a snow routine if specified. 
+    
+    Required Parameters:
+        Ptar: Precipitation for the basin, only used in Yalan Data runs
+        Ttar: Temperature for the basin, only used in Yalan Data runs
+        PETtar: PET for the basin, only used in Yalan Data runs
+        AREAtar: Area of basin in KM^2
+        DEPTHtar: Soil depth of basin 
+        file_paramset: The path to the generated parameters for the CFE model
+        outfile: The path where you want to store the output files
+        config_template: The CFE configuration file template used to run the BMI
+    Optional Parameters:
+        runRouting: Flag set in LSE config to run the routing 
+            (default = True)
+        runSHM: Flag set in LSE config to run the snow routine 
+            (default = True)
+        endIndex: The last index in the forcing data the model looks at when running (helps with speed) 
+            (default is ~5 years w/ spin-up)
+        
+    Returns:
+        Pandas Series or Boolean (depends on the data used)
+            If AORC or NLDAS => Returns the observed flow in mm/hr
+            If Yalan Data => Returns False in order to use observed flow built into the model
     '''
     
     CFEparam_dict, routingparam_dict, snowparam_dict = load_CFE_param(file_paramset, AREAtar, DEPTHtar)
@@ -251,6 +400,27 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
         aorc = True
         ds = xr.open_dataset(cfe_instance.forcing_file) # aorc forcings are .nc files
         df_forcing = ds.to_dataframe().reset_index()
+        
+        # generate PET using the data
+        # df_forcing = penman_monteith_pet_hourly(df_forcing)
+        
+    elif "mixed" in config_template.lower():
+        aorc = True
+        ds = xr.open_dataset(cfe_instance.forcing_file) # aorc forcings are .nc files
+        df_forcing = ds.to_dataframe().reset_index()
+        
+        # get pet from nldas data
+        with open(cfe_instance.compare_results_file, 'r') as f:
+            df_pet = pd.read_csv(f)
+            df_pet['date'] = pd.to_datetime(df_pet['date'])
+            
+        # add pet to the forcings
+        df_forcing = pd.merge(
+            df_forcing,
+            df_pet[['date', 'potential_evaporation']],
+            on='date',
+            how='inner'
+        )
     # QObs is from a separate file so we can grab it here
     # NEED TO SETUP DIFFERENTLY
     elif "nldas" in config_template.lower():
@@ -273,7 +443,7 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
 
         df_forcing = df_forcing.rename(columns = {'date': 'time', 'QObs_CAMELS(mm/h)': 'qobs_mm_per_hour'})
     else:
-        # run daymet
+        # run yalan data
         nldas = False
         aorc = False
 
@@ -295,11 +465,14 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
         T_thresh = snowparam_dict["T_thresh"]
 
         if aorc:
-            for precip, temp in zip(df_forcing['APCP_surface'][:endIndex], df_forcing['TMP_2maboveground'][:endIndex]):
+            for precip, temp, pet in zip(df_forcing['APCP_surface'][:endIndex], df_forcing['TMP_2maboveground'][:endIndex], df_forcing["potential_evaporation"][:endIndex]):
                 # run the snow routine
-                melt, rain, snow_storage = shm_snow_step(precip, temp, snow_storage, T_thresh=T_thresh, DDF=DDF)
-                precip_m = (rain + melt) / 1000.0 # "effective" precip
-                # pet_m = pet * 2.7778e-7 # unsure if correct, assuming it is originally mm/h
+                if runSHM:
+                    melt, rain, snow_storage = shm_snow_step(precip, temp, snow_storage, T_thresh=T_thresh, DDF=DDF)
+                    precip_m = (rain + melt) * 0.001 # "effective" precipy
+                else:
+                    precip_m = precip * 0.001
+                pet_m = pet * 2.7778e-7 # mm/hr => m/s
 
                 cfe_instance.set_value('atmosphere_water__time_integral_of_precipitation_mass_flux', precip_m)
                 cfe_instance.set_value('water_potential_evaporation_flux', pet_m)
@@ -314,9 +487,12 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
         elif nldas:
             for precip, temp, pet in zip(df_forcing['total_precipitation'][:endIndex], df_forcing['temperature'][:endIndex], df_forcing["potential_evaporation"][:endIndex]):
                 # run the snow routine
-                melt, rain, snow_storage = shm_snow_step(precip, temp, snow_storage, T_thresh=T_thresh, DDF=DDF)
-                precip_m = (rain + melt) / 1000.0 # "effective" precip
-                pet_m = pet * 2.7778e-7 # unsure if this is correct, assuming it is originally mm/hr
+                if runSHM:
+                    melt, rain, snow_storage = shm_snow_step(precip, temp, snow_storage, T_thresh=T_thresh, DDF=DDF)
+                    precip_m = (rain + melt) * 0.001 # effective precip
+                else:
+                    precip_m = precip * 0.001
+                pet_m = pet * 2.7778e-7
 
                 cfe_instance.set_value('atmosphere_water__time_integral_of_precipitation_mass_flux', precip_m)
                 cfe_instance.set_value('water_potential_evaporation_flux', pet_m)
@@ -337,8 +513,11 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
                 pet = PETtar[n].item()
                 
                 # run the snow routine
-                melt, rain, snow_storage = shm_snow_step(precip, temp, snow_storage, T_thresh=T_thresh, DDF=DDF)
-                precip_m = (rain + melt) * 0.001 / 24 # "effective" precip, assuming it is originally mm/day
+                if runSHM:
+                    melt, rain, snow_storage = shm_snow_step(precip, temp, snow_storage, T_thresh=T_thresh, DDF=DDF)
+                    precip_m = (rain + melt) * 0.001 / 24 # "effective" precip, assuming it is originally mm/day
+                else:
+                    precip_m = precip * 0.001 / 24
                 pet_m = pet * 0.001 / 86400.0 # unsure if correct, assuming it is originally mm/day
 
                 cfe_instance.set_value('atmosphere_water__time_integral_of_precipitation_mass_flux', precip_m)
@@ -355,9 +534,12 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
         # finalize
         cfe_instance.finalize(print_mass_balance=False)
         
-        # convert values to np arrays
-        output_lists["runoff_depth_mm"] = route_flow(routingparam_dict, output_lists["runoff_depth_mm"]) # route values
-        output_arrays = {key: np.array(value) for key, value in output_lists.items()} # convert to numpy array for speed
+        if runRouting:
+            output_lists["runoff_depth_mm"] = route_flow(routingparam_dict, output_lists["runoff_depth_mm"])
+        
+        # convert to numpy array for speed
+        # not sure if actually needed
+        output_arrays = {key: np.array(value) for key, value in output_lists.items()} 
                 
         print("Saving output file to ", outfile)        
         save_CFE_output(outfile, output_arrays)
@@ -365,9 +547,13 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
         if aorc is False and nldas is False:
             return False
 
-        # qobs = df_forcing["QObs_mm_per_day"] 
+        qobs = df_forcing["qobs_mm_per_hour"] 
+        
+        # fill using time 
         # df_forcing['date'] = pd.to_datetime(df_forcing['date'])
         # df_forcing = df_forcing.set_index('date')
-        qobs = df_forcing["qobs_mm_per_hour"]
         # qobs_filled = qobs.interpolate(method='time').ffill().bfill()
-        return qobs # compare out flow
+        
+        # we need to return the observed flow to compare with
+        # the lse is designed to look at the Yalan Data flow
+        return qobs

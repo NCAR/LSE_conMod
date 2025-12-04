@@ -1,0 +1,31 @@
+{
+    "forcing_file": "/home/m10870071/aw-ciroh/common/datasets/camels_aorc_hourly/time_series/{{gageID}}.nc",
+    "catchment_area_km2":"{{area}}",
+    "alpha_fc":"{{alpha_fc}}",
+    "partition_scheme":"Schaake",
+    "soil_params":{
+	        "D": "{{soil_params.D}}",
+    		"bb": "{{soil_params.bb}}",
+    		"satdk": "{{soil_params.satdk}}",
+    		"satpsi": "{{soil_params.satpsi}}",
+    		"slop": "{{soil_params.slop}}",
+    		"smcmax": "{{soil_params.smcmax}}",
+    		"wltsmc": "{{soil_params.wltsmc}}"	
+    },
+    "max_gw_storage": "{{max_gw_storage}}",
+    "Cgw": "{{Cgw}}",
+    "expon": "{{expon}}",
+    "K_nash": "{{K_nash}}",
+    "K_lf": "{{K_lf}}",
+    "nash_storage": "{{nash_storage}}",
+    "a_Xinanjiang_inflection_point": "{{a_Xinanjiang_inflection_point}}",
+    "b_Xinanjiang_shape_param": "{{b_Xinanjiang_shape_param}}",
+    "x_Xinanjiang_shape_param": "{{x_Xinanjiang_shape_param}}", 
+    "nash_storage":[0.0,0.0],
+    "giuh_ordinates":"{{giuh_ordinates}}",
+    "num_timesteps": 1,
+    "stand_alone": 1,
+    "unit_test": 1,
+    "compare_results_file": "/home/m10870071/aw-ciroh/common/datasets/camels/CAMELS_US/hourly/nldas_hourly/{{gageID}}_hourly_nldas.csv",
+    "soil_scheme": "classic"
+}

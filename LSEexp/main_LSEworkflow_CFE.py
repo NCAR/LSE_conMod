@@ -99,6 +99,8 @@ if iter_now == 0 and external_iter0 == False:
 
 model = config['model']['model_to_run']
 config_template = config['model']['config_temp']
+routing = config['model']['routing']
+snow = config['model']['snow']
 
 inpath_data = config['data']['inpath_data']
 file_parameter_list = config['data']['file_parameter_list']
@@ -171,12 +173,12 @@ else:
         if ncpu == 1:
             # serial
             for tarparam in range(num_trial):
-                run_modelflow_OneBasin_OneParamSet(model, tarparam, iter_now, gageID, tarbasin, Ptar, Ttar, PETtar, AREAtar, DEPTHtar,
-                                                   config_template, outpath_parent, outpath_basin, eval_indexStart, eval_indexEnd, eval_obs)
+                run_modelflow_OneBasin_OneParamSet(model, tarparam, iter_now, gageID, tarbasin, Ptar, Ttar, PETtar, AREAtar, DEPTHtar, config_template, 
+                                                   routing, snow, outpath_parent, outpath_basin, eval_indexStart, eval_indexEnd, eval_obs)
         else:
             # parallel
-            alltrial = [(model, tarparam, iter_now, gageID, tarbasin, Ptar, Ttar, PETtar, AREAtar, DEPTHtar, config_template,
-                        outpath_parent, outpath_basin, eval_indexStart, eval_indexEnd, eval_obs) for tarparam in range(num_trial)]
+            alltrial = [(model, tarparam, iter_now, gageID, tarbasin, Ptar, Ttar, PETtar, AREAtar, DEPTHtar, config_template, routing,
+                        snow, outpath_parent, outpath_basin, eval_indexStart, eval_indexEnd, eval_obs) for tarparam in range(num_trial)]
             
             with multiprocessing.Pool(processes=ncpu) as pool:
                 pool.starmap(run_modelflow_OneBasin_OneParamSet, alltrial)

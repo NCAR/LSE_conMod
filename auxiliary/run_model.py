@@ -14,7 +14,8 @@ sys.path.append('../CFE/')
 from runCFE import run_CFE_OneBasin_OneParamSet, load_CFE_output
 
 
-def run_modelflow_OneBasin_OneParamSet(model, tarparam, iter, gageID, tarbasin, Ptar, Ttar, PETtar, AREAtar, DEPTHtar, config_template, outpath_parent, outpath_basin, eval_indexStart, eval_indexEnd, eval_obs):
+def run_modelflow_OneBasin_OneParamSet(model, tarparam, iter, gageID, tarbasin, Ptar, Ttar, PETtar, AREAtar, DEPTHtar, config_template, 
+                                       routing, snow, outpath_parent, outpath_basin, eval_indexStart, eval_indexEnd, eval_obs):
     
     # Target parameter set
     file_paramset = f'{outpath_parent}/{gageID}/param_sets/paramset_iter{iter}_trial{tarparam}.pkl'
@@ -25,7 +26,7 @@ def run_modelflow_OneBasin_OneParamSet(model, tarparam, iter, gageID, tarbasin, 
     if model == "HBV":
         run_HBV_OneBasin_OneParamSet(Ptar, Ttar, PETtar, file_paramset, outfile)
     elif model == "CFE":
-        qobs = run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_paramset, outfile, config_template, 52620)
+        qobs = run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_paramset, outfile, config_template, routing, snow, 52620)
         # only if using AORC or NLDAS
         if qobs is not False:
             eval_indexStart = 8760
