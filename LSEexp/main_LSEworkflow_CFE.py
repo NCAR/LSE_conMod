@@ -101,6 +101,8 @@ model = config['model']['model_to_run']
 config_template = config['model']['config_temp']
 routing = config['model']['routing']
 snow = config['model']['snow']
+eval_years = config['model']['eval_years'] # for my benefit
+araki = config['model']['araki'] # for my benefit
 
 inpath_data = config['data']['inpath_data']
 file_parameter_list = config['data']['file_parameter_list']
@@ -174,11 +176,11 @@ else:
             # serial
             for tarparam in range(num_trial):
                 run_modelflow_OneBasin_OneParamSet(model, tarparam, iter_now, gageID, tarbasin, Ptar, Ttar, PETtar, AREAtar, DEPTHtar, config_template, 
-                                                   routing, snow, outpath_parent, outpath_basin, eval_indexStart, eval_indexEnd, eval_obs)
+                                                   routing, snow, eval_years, araki, outpath_parent, outpath_basin, eval_indexStart, eval_indexEnd, eval_obs)
         else:
             # parallel
             alltrial = [(model, tarparam, iter_now, gageID, tarbasin, Ptar, Ttar, PETtar, AREAtar, DEPTHtar, config_template, routing,
-                        snow, outpath_parent, outpath_basin, eval_indexStart, eval_indexEnd, eval_obs) for tarparam in range(num_trial)]
+                        snow, eval_years, araki, outpath_parent, outpath_basin, eval_indexStart, eval_indexEnd, eval_obs) for tarparam in range(num_trial)]
             
             with multiprocessing.Pool(processes=ncpu) as pool:
                 pool.starmap(run_modelflow_OneBasin_OneParamSet, alltrial)

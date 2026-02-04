@@ -130,7 +130,7 @@ def load_CFE_param(infile_param, area, depth):
     param1_dict["soil_params.D"] = depth
     
     # get the alpha_fc + giuh_ordinate values
-    df_basin = pd.read_csv("/home/m10870071/lse/CFE/basin_params.csv")
+    df_basin = pd.read_csv("/home/m10870071/lse/HBV_LSE/data/basin_params.csv")
     
     file_path = Path(infile_param)
     gageID_raw = file_path.parts[-3]
@@ -140,7 +140,7 @@ def load_CFE_param(infile_param, area, depth):
         gageID = gageID_raw
     param1_dict["gageID"] = gageID
     
-    df_basin['giuh_ordinates'] = df_basin['giuh_ordinates'].apply(normalize_giuh) # not sure if needed anymore
+    df_basin['giuh_ordinates'] = df_basin['giuh_ordinates'].apply(normalize_giuh)
         
     row = df_basin.loc[df_basin['basin_id'] == gageID, ['alpha_fc', 'giuh_ordinates']]
     if not row.empty:
@@ -352,7 +352,7 @@ def penman_monteith_pet_hourly(df, albedo=0.23, emissivity=0.98):
     
     return df
 
-def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_paramset, outfile, config_template, runRouting=True, runSHM=True, endIndex=52620):
+def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_paramset, outfile, config_template, runRouting=True, runSHM=True, runAraki=False, endIndex=52620):
     '''
     Use the Basic Model Interface to interact with the CFE to 
     run it with the given parameters. Currently runs on either
@@ -386,7 +386,14 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
     '''
     
     CFEparam_dict, routingparam_dict, snowparam_dict = load_CFE_param(file_paramset, AREAtar, DEPTHtar)
-    CFEconfig_file = generate_config(CFEparam_dict, file_paramset, config_template) 
+    
+    # meant to help with araki baseline runs
+    if runAraki:
+        # grab Araki CFE config file to run through LSE
+        gageID = CFEparam_dict["gageID"]
+        CFEconfig_file = f"/home/m10870071/scratch/Araki_CAMELS/config_files/{gageID}_araki.json"
+    else:
+        CFEconfig_file = generate_config(CFEparam_dict, file_paramset, config_template) 
         
     ##### run CFE using BMI #####
 
@@ -400,6 +407,10 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
         aorc = True
         ds = xr.open_dataset(cfe_instance.forcing_file) # aorc forcings are .nc files
         df_forcing = ds.to_dataframe().reset_index()
+
+        # set up index as date
+        df_forcing['date'] = pd.to_datetime(df_forcing['date'])
+        df_forcing = df_forcing.set_index('date')
         
         # generate PET using the data
         # df_forcing = penman_monteith_pet_hourly(df_forcing)
@@ -469,7 +480,7 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
                 # run the snow routine
                 if runSHM:
                     melt, rain, snow_storage = shm_snow_step(precip, temp, snow_storage, T_thresh=T_thresh, DDF=DDF)
-                    precip_m = (rain + melt) * 0.001 # "effective" precipy
+                    precip_m = (rain + melt) * 0.001 # "effective" precip, mm/hr => m/hr
                 else:
                     precip_m = precip * 0.001
                 pet_m = pet * 2.7778e-7 # mm/hr => m/s
@@ -489,10 +500,10 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
                 # run the snow routine
                 if runSHM:
                     melt, rain, snow_storage = shm_snow_step(precip, temp, snow_storage, T_thresh=T_thresh, DDF=DDF)
-                    precip_m = (rain + melt) * 0.001 # effective precip
+                    precip_m = (rain + melt) * 0.001 # effective precip, mm/hr => m/hr
                 else:
-                    precip_m = precip * 0.001
-                pet_m = pet * 2.7778e-7
+                    precip_m = precip * 0.001 # mm/hr => m/hr
+                pet_m = pet * 2.7778e-7 # mm/hr => m/s
 
                 cfe_instance.set_value('atmosphere_water__time_integral_of_precipitation_mass_flux', precip_m)
                 cfe_instance.set_value('water_potential_evaporation_flux', pet_m)
@@ -515,10 +526,10 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
                 # run the snow routine
                 if runSHM:
                     melt, rain, snow_storage = shm_snow_step(precip, temp, snow_storage, T_thresh=T_thresh, DDF=DDF)
-                    precip_m = (rain + melt) * 0.001 / 24 # "effective" precip, assuming it is originally mm/day
+                    precip_m = (rain + melt) * 0.001 / 24.0 # "effective" precip, mm/day => m/hr
                 else:
-                    precip_m = precip * 0.001 / 24
-                pet_m = pet * 0.001 / 86400.0 # unsure if correct, assuming it is originally mm/day
+                    precip_m = precip * 0.001 / 24.0 # mm/day => m/hr
+                pet_m = pet * 0.001 / 86400.0 # mm/day => m/s
 
                 cfe_instance.set_value('atmosphere_water__time_integral_of_precipitation_mass_flux', precip_m)
                 cfe_instance.set_value('water_potential_evaporation_flux', pet_m)
@@ -548,12 +559,8 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
             return False
 
         qobs = df_forcing["qobs_mm_per_hour"] 
-        
-        # fill using time 
-        # df_forcing['date'] = pd.to_datetime(df_forcing['date'])
-        # df_forcing = df_forcing.set_index('date')
         # qobs_filled = qobs.interpolate(method='time').ffill().bfill()
         
         # we need to return the observed flow to compare with
         # the lse is designed to look at the Yalan Data flow
-        return qobs
+        return qobs  # _filled

@@ -1,7 +1,7 @@
 Parameter,Default,Lower,Upper,Units
 soil_params.bb,4.05,2,15,-
 soil_params.satdk,3.38e-06,1.95E-07,1.41e-03,m/s
-soil_params.satpsi,0.355,0.036,955,m
+soil_params.satpsi,0.355,0.036,0.955,m
 soil_params.slop,0.05,5.95e-05,1,m/m
 soil_params.smcmax,0.439,0.16,0.58,m/m
 soil_params.wltsmc,0.1,0.05,0.3,m/m
