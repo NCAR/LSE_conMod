@@ -10,7 +10,7 @@ Cgw,1.8e-05,1.8e-06,1.8e-03,m/h
 expon,3,1,8,-
 K_nash,0.03,0,1,h^-1
 K_lf,0.01,0,1,h^-1
-nash_storage,0,0,0.1
+nash_storage,0,0,0.1,-
 a_Xinanjiang_inflection_point,0.001,-0.493,0.493,-
 b_Xinanjiang_shape_param,0.261,0.001,10,-
 x_Xinanjiang_shape_param,0.182,0.5e-04,10,-
