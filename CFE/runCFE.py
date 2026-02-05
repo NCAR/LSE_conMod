@@ -474,12 +474,13 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
         snow_storage = 0.0
         DDF = snowparam_dict["DDF"]
         T_thresh = snowparam_dict["T_thresh"]
+        delta_K = 24.0 # scale to hourly
 
         if aorc:
             for precip, temp, pet in zip(df_forcing['APCP_surface'][:endIndex], df_forcing['TMP_2maboveground'][:endIndex], df_forcing["potential_evaporation"][:endIndex]):
                 # run the snow routine
                 if runSHM:
-                    melt, rain, snow_storage = shm_snow_step(precip, temp, snow_storage, T_thresh=T_thresh, DDF=DDF)
+                    melt, rain, snow_storage = shm_snow_step(precip, temp, snow_storage, T_thresh=T_thresh, DDF=DDF, delta_K=delta_K)
                     precip_m = (rain + melt) * 0.001 # "effective" precip, mm/hr => m/hr
                 else:
                     precip_m = precip * 0.001
@@ -499,7 +500,7 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
             for precip, temp, pet in zip(df_forcing['total_precipitation'][:endIndex], df_forcing['temperature'][:endIndex], df_forcing["potential_evaporation"][:endIndex]):
                 # run the snow routine
                 if runSHM:
-                    melt, rain, snow_storage = shm_snow_step(precip, temp, snow_storage, T_thresh=T_thresh, DDF=DDF)
+                    melt, rain, snow_storage = shm_snow_step(precip, temp, snow_storage, T_thresh=T_thresh, DDF=DDF, delta_K=delta_K)
                     precip_m = (rain + melt) * 0.001 # effective precip, mm/hr => m/hr
                 else:
                     precip_m = precip * 0.001 # mm/hr => m/hr
@@ -525,7 +526,7 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
                 
                 # run the snow routine
                 if runSHM:
-                    melt, rain, snow_storage = shm_snow_step(precip, temp, snow_storage, T_thresh=T_thresh, DDF=DDF)
+                    melt, rain, snow_storage = shm_snow_step(precip, temp, snow_storage, T_thresh=T_thresh, DDF=DDF, delta_K=delta_K)
                     precip_m = (rain + melt) * 0.001 / 24.0 # "effective" precip, mm/day => m/hr
                 else:
                     precip_m = precip * 0.001 / 24.0 # mm/day => m/hr

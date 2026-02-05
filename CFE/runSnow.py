@@ -7,7 +7,7 @@ import numpy as np
 
 # Compares temp to the threshold and converts to either snow or 
 # precip, which can then be passed as input to CFE model
-def shm_snow_step(precip_mm, temp_C, snow_storage, T_thresh=0.0, DDF=3.0):
+def shm_snow_step(precip_mm, temp_C, snow_storage, T_thresh=0.0, DDF=3.0, delta_K=1.0):
     """
     One step of the SHM snow routine. Compare temperature and convert
     to snow or runoff depending on threshold. 
@@ -18,6 +18,7 @@ def shm_snow_step(precip_mm, temp_C, snow_storage, T_thresh=0.0, DDF=3.0):
         snow_storage : snowpack at beginning of step [mm]
         T_thresh  : rain/snow threshold [°C]
         DDF       : degree-day factor [mm/°C/day]
+        delta_K   : scaling factor for DDF (ex. delta_K = 24.0 scales to hourly time-step)
     
     Returns
         melt : snowmelt released [mm]
@@ -32,8 +33,8 @@ def shm_snow_step(precip_mm, temp_C, snow_storage, T_thresh=0.0, DDF=3.0):
     else:
         # precip falls as rain
         rain = precip_mm
-        # melt potential (scaled to hourly)
-        melt_potential = (DDF / 24.0) * (temp_C - T_thresh)
+        # melt potential (scaled by delta_K)
+        melt_potential = (DDF / delta_K) * (temp_C - T_thresh)
         melt = min(snow_storage, melt_potential)
         new_snow_storage = snow_storage - melt
     
