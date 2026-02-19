@@ -6,7 +6,7 @@
 #SBATCH --time=48:00:00
 #SBATCH --output=/home/m10870071/scratch/logs/cfe/%j.out  # Standard output
 #SBATCH --error=/home/m10870071/scratch/logs/cfe/%j.err   # Standard error
-#SBATCH --account=2306081036    # Account number
+#SBATCH --account=    # Account number
 
 ncpu=36
 
