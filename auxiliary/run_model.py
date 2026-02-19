@@ -15,7 +15,7 @@ from runCFE import run_CFE_OneBasin_OneParamSet, load_CFE_output
 
 
 def run_modelflow_OneBasin_OneParamSet(model, tarparam, iter, gageID, tarbasin, Ptar, Ttar, PETtar, AREAtar, DEPTHtar, config_template, 
-                                       routing, snow, eval_years, araki, outpath_parent, outpath_basin, eval_indexStart, eval_indexEnd, eval_obs):
+                                       routing, snow, eval_years, outpath_parent, outpath_basin, eval_indexStart, eval_indexEnd, eval_obs):
     
     # Target parameter set
     file_paramset = f'{outpath_parent}/{gageID}/param_sets/paramset_iter{iter}_trial{tarparam}.pkl'
@@ -26,14 +26,10 @@ def run_modelflow_OneBasin_OneParamSet(model, tarparam, iter, gageID, tarbasin, 
     if model == "HBV":
         run_HBV_OneBasin_OneParamSet(Ptar, Ttar, PETtar, file_paramset, outfile)
     elif model == "CFE":
-        hourly_wy = 8760 
-        endIndex = hourly_wy * (eval_years + 1)
+        qobs, eval_indexStart, eval_indexEnd = run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_paramset, outfile, config_template, routing, snow, eval_years)
         
-        qobs = run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_paramset, outfile, config_template, routing, snow, araki, endIndex + 10)
         # only if using AORC or NLDAS
         if qobs is not False:
-            eval_indexStart = hourly_wy # year spin-up
-            eval_indexEnd = endIndex # the number of evaluation years to evaluate
             eval_obs = qobs[eval_indexStart:eval_indexEnd+1]
     else:
         raise ValueError("Invalid value provided")

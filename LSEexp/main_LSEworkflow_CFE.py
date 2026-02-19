@@ -102,7 +102,6 @@ config_template = config['model']['config_temp']
 routing = config['model']['routing']
 snow = config['model']['snow']
 eval_years = config['model']['eval_years'] # for my benefit
-araki = config['model']['araki'] # for my benefit
 
 inpath_data = config['data']['inpath_data']
 file_parameter_list = config['data']['file_parameter_list']
@@ -131,7 +130,7 @@ startDate = train_run_period[0]
 endDate = train_run_period[1]
 print("run model period:", startDate, "-", endDate)
 
-forcing_train, target_train, attr_train, date_train, forcingLst, allbasin_IDs, attrLst = load_Yalan_data(inpath_data, startDate, endDate, IDfile)
+forcing_train, target_train, attr_train, date_train, forcingLst, allbasin_IDs, attrLst = load_Yalan_data(inpath_data, None, None, IDfile)
 print("forcing shape", forcing_train.shape)
 
 num_basin = len(allbasin_IDs)
@@ -176,11 +175,11 @@ else:
             # serial
             for tarparam in range(num_trial):
                 run_modelflow_OneBasin_OneParamSet(model, tarparam, iter_now, gageID, tarbasin, Ptar, Ttar, PETtar, AREAtar, DEPTHtar, config_template, 
-                                                   routing, snow, eval_years, araki, outpath_parent, outpath_basin, eval_indexStart, eval_indexEnd, eval_obs)
+                                                   routing, snow, eval_years, outpath_parent, outpath_basin, eval_indexStart, eval_indexEnd, eval_obs)
         else:
             # parallel
             alltrial = [(model, tarparam, iter_now, gageID, tarbasin, Ptar, Ttar, PETtar, AREAtar, DEPTHtar, config_template, routing,
-                        snow, eval_years, araki, outpath_parent, outpath_basin, eval_indexStart, eval_indexEnd, eval_obs) for tarparam in range(num_trial)]
+                        snow, eval_years, outpath_parent, outpath_basin, eval_indexStart, eval_indexEnd, eval_obs) for tarparam in range(num_trial)]
             
             with multiprocessing.Pool(processes=ncpu) as pool:
                 pool.starmap(run_modelflow_OneBasin_OneParamSet, alltrial)

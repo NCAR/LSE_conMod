@@ -9,17 +9,21 @@ projectCode = "2306081036"
 [model]
 model_to_run = "CFE" # HBV OR CFE
 config_temp = "/home/m10870071/lse/HBV_LSE/CFE/templates/nldas_template.json" # only needed for CFE
+routing = true # toggle routing for CFE
+snow = true # toggle snow routine for CFE
+eval_years = 10 # number of years to evaluate
 
 [data]
 # file_parameter_list = "../data/HBV_v1.1_param_bounds.csv" 
 file_parameter_list = "../data/CFE_param_bounds.csv"
 inpath_data = "/u/st/dr/awwood/aw-ciroh-proj/sets-aw-ciroh/projects/tmpdir/data_Yalan"
-IDfile = "clean_basinParams.txt" 
+IDfile = "basinParams.txt" 
 
 [output]
-outpath_parent = "/home/m10870071/scratch/HBV_CAMELS/LSEexp1"
+outpath_parent = "/home/m10870071/scratch/HBV_CAMELS/LSEexp5"
 
 [dates]
+# only used for HBV
 alldata_period = ["1980-10-01", "2014-09-30"]
 train_run_period = ["1999-10-01", "2008-09-30"] 
 train_eval_period = ["2000-10-01", "2008-09-30"]
@@ -29,8 +33,8 @@ test_eval_period = ["1989-10-01", "1999-09-30"]
 [emulator]
 objfunc = "normNSE"
 sampling_method = "lh"
-num_init = 300 # 400
-num_per_iter = 75 # 100
-num_iter = 5
+num_init = 200 
+num_per_iter = 50 # 100
+num_iter = 8
 optmz_times = 1
-attrlist = "All" #Xie2021
+attrlist = "All" #"Xie2021"

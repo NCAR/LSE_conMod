@@ -104,7 +104,6 @@ def flow_unit_conversion(flow_data, basin_area=None, mode='cfs_to_mmd'):
 # forcing / flow / basin attribute data
 ############
 
-
 def get_index_of_nested_period(period_parent, period_subset):
     # example    
     # period_parent = ['1998-10-01', '2008-09-30']
@@ -121,6 +120,51 @@ def get_index_of_nested_period(period_parent, period_subset):
     indexEnd = (subset_end - parent_start).days
 
     return indexStart, indexEnd
+
+def get_water_year_indices(df, n_years, spinup_years=1, date_col=None):
+    """
+    Returns:
+        spinup_idx, start_idx, end_idx,
+        spinup_start, start_date, end_date
+
+    Water year: Oct 1 00:00 → Sept 30 23:00
+    """
+
+    # Get datetime series
+    if date_col:
+        dates = pd.to_datetime(df[date_col])
+    else:
+        dates = pd.to_datetime(df.index)
+    
+    first_date = dates.min()
+    last_date  = dates.max()
+
+    # Candidate water year: first possible Oct 1 after first_date
+    candidate_year = first_date.year
+    if first_date.month >= 10:
+        candidate_year += 1
+
+    while True:
+        start_date = pd.Timestamp(candidate_year, 10, 1, 0)
+        spinup_start = start_date - pd.DateOffset(years=spinup_years)
+
+        # Ensure we have enough spinup and full eval window
+        if spinup_start >= first_date:
+            end_date = pd.Timestamp(candidate_year + n_years, 9, 30, 23)
+            if end_date <= last_date:
+                break
+
+        candidate_year += 1
+
+        if candidate_year > last_date.year:
+            raise ValueError("Not enough data for spinup + evaluation years.")
+
+    # --- indices ---
+    spinup_idx = dates.searchsorted(spinup_start)
+    start_idx  = dates.searchsorted(start_date)
+    end_idx    = dates.searchsorted(end_date)
+
+    return spinup_idx, start_idx, end_idx, spinup_start, start_date, end_date
 
 
 def save_pickle_file(filename, data, overwrite=True):

@@ -12,6 +12,9 @@ from scipy.special import gamma
 import bmi_cfe
 from runSnow import shm_snow_step
 
+sys.path.append('../auxiliary/')
+from data_processing import get_water_year_indices
+
 # CODE FROM HBV.PY
 def UH_gamma(a, b, lenF=10):
     """
@@ -352,7 +355,7 @@ def penman_monteith_pet_hourly(df, albedo=0.23, emissivity=0.98):
     
     return df
 
-def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_paramset, outfile, config_template, runRouting=True, runSHM=True, runAraki=False, endIndex=52620):
+def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_paramset, outfile, config_template, runRouting=True, runSHM=True, eval_years=5):
     '''
     Use the Basic Model Interface to interact with the CFE to 
     run it with the given parameters. Currently runs on either
@@ -376,24 +379,18 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
             (default = True)
         runSHM: Flag set in LSE config to run the snow routine 
             (default = True)
-        endIndex: The last index in the forcing data the model looks at when running (helps with speed) 
+        eval_years: The number of years to evaluate the model on
             (default is ~5 years w/ spin-up)
         
     Returns:
         Pandas Series or Boolean (depends on the data used)
             If AORC or NLDAS => Returns the observed flow in mm/hr
             If Yalan Data => Returns False in order to use observed flow built into the model
+        Start and End Indices (if NLDAS)
     '''
     
     CFEparam_dict, routingparam_dict, snowparam_dict = load_CFE_param(file_paramset, AREAtar, DEPTHtar)
-    
-    # meant to help with araki baseline runs
-    if runAraki:
-        # grab Araki CFE config file to run through LSE
-        gageID = CFEparam_dict["gageID"]
-        CFEconfig_file = f"/home/m10870071/scratch/Araki_CAMELS/config_files/{gageID}_araki.json"
-    else:
-        CFEconfig_file = generate_config(CFEparam_dict, file_paramset, config_template) 
+    CFEconfig_file = generate_config(CFEparam_dict, file_paramset, config_template) 
         
     ##### run CFE using BMI #####
 
@@ -433,7 +430,7 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
             how='inner'
         )
     # QObs is from a separate file so we can grab it here
-    # NEED TO SETUP DIFFERENTLY
+    # All files start at the same date
     elif "nldas" in config_template.lower():
         nldas = True
         with open(cfe_instance.forcing_file, 'r') as f:
@@ -475,7 +472,10 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
         DDF = snowparam_dict["DDF"]
         T_thresh = snowparam_dict["T_thresh"]
         delta_K = 24.0 # scale to hourly
-
+        
+        # get indices for run
+        spinupIndex, startIndex, endIndex, spinup_start, start_date, end_date = get_water_year_indices(df_forcing, n_years=eval_years, spinup_years=1, date_col="time")        
+        
         if aorc:
             for precip, temp, pet in zip(df_forcing['APCP_surface'][:endIndex], df_forcing['TMP_2maboveground'][:endIndex], df_forcing["potential_evaporation"][:endIndex]):
                 # run the snow routine
@@ -497,7 +497,7 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
                     else:
                         output_lists[output].append(cfe_instance.get_value(output))
         elif nldas:
-            for precip, temp, pet in zip(df_forcing['total_precipitation'][:endIndex], df_forcing['temperature'][:endIndex], df_forcing["potential_evaporation"][:endIndex]):
+            for precip, temp, pet in zip(df_forcing['total_precipitation'][:endIndex+10], df_forcing['temperature'][:endIndex+10], df_forcing["potential_evaporation"][:endIndex+10]):
                 # run the snow routine
                 if runSHM:
                     melt, rain, snow_storage = shm_snow_step(precip, temp, snow_storage, T_thresh=T_thresh, DDF=DDF, delta_K=delta_K)
@@ -559,9 +559,9 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
         if aorc is False and nldas is False:
             return False
 
+        # there are missing values, best way to fill?
         qobs = df_forcing["qobs_mm_per_hour"] 
-        # qobs_filled = qobs.interpolate(method='time').ffill().bfill()
         
         # we need to return the observed flow to compare with
         # the lse is designed to look at the Yalan Data flow
-        return qobs  # _filled
+        return qobs, startIndex, endIndex  # _filled
