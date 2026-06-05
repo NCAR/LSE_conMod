@@ -13,7 +13,7 @@ import bmi_cfe
 from runSnow import shm_snow_step
 
 sys.path.append('../auxiliary/')
-from data_processing import get_water_year_indices
+from data_processing import get_water_year_indices, get_train_period
 
 # CODE FROM HBV.PY
 def UH_gamma(a, b, lenF=10):
@@ -307,55 +307,7 @@ def generate_config(param_dict, file_paramset, config_template):
 
     return output_path
 
-# I used this function to generate new AORC NetCDF files
-# so not necessarily needed any more
-def penman_monteith_pet_hourly(df, albedo=0.23, emissivity=0.98):
-    """
-    Compute hourly PET (mm/hr) using the ASCE Penman–Monteith equation.
-    Only used for our AORC data. 
-
-    Parameters:
-        df: Pandas dataframe containing...
-            TMP_2maboveground (°C)
-            PRES_surface (Pa)
-            DSWRF_surface (W/m2)
-            DLWRF_surface (W/m2)
-            SPFH_2maboveground (kg/kg)
-            UGRD_10maboveground (m/s)
-            VGRD_10maboveground (m/s)
-       
-    Returns:
-        Pandas DF
-            Includes the PET [mm/hr] in df as a new column
-    """
-   
-    T = df['TMP_2maboveground']                    # °C
-    P = df['PRES_surface'] / 1000.0                # convert Pa to kPa
-    q = df['SPFH_2maboveground'] / 1000.0          # convert from g/g to kg/kg (its a ratio so unsure if even needed)
-
-    sigma = 5.67e-8                            # Stefan–Boltzmann [W/m²K⁴]
-    R_sw_down = 0.77 * df['DSWRF_surface']     # net incoming shortwave (W/m²)
-    R_l_down = df['DLWRF_surface']            # incoming longwave (W/m²)
-    R_l_up   = 0.96 * sigma * (T + 273.15)**4
-    Rn_W = (R_sw_down + R_l_down - R_l_up)    # net radiation in W/m²
-    Rn = Rn_W * 0.0036 
-    
-    es = 0.6108 * np.exp(17.27 * T / (T + 237.3))  # saturation VP (kPa):contentReference[oaicite:8]{index=8}
-    ea = (q * P) / (0.622 + 0.378 * q)  # actual VP:contentReference[oaicite:9]{index=9}
-    Δ = (4098 * es) / ((T + 237.3)**2)             # slope of vapor pressure curve (kPa/°C)
-    γ = 0.000665 * P                               # psychrometric constant (kPa/°C)
-    VPD = es - ea   # vapor pressure deficit (kPa)
-    
-    wind10 = np.sqrt(df['UGRD_10maboveground']**2 + df['VGRD_10maboveground']**2)
-    u2 = wind10 * 0.748                           # wind at 2 m (m/s)
-    C_n, C_d = 37.0, 0.24                         # short-grass hourly constants:contentReference[oaicite:10]{index=10}:contentReference[oaicite:11]{index=11}
-    ET_num = 0.408 * Δ * (Rn - 0.0) + γ * (C_n/(T+273.15)) * u2 * VPD
-    ET_den = Δ + γ * (1 + C_d * u2)
-    df['potential_evaporation'] = ET_num / ET_den
-    
-    return df
-
-def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_paramset, outfile, config_template, runRouting=True, runSHM=True, eval_years=5):
+def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_paramset, outfile, config_template, eval_start, eval_end, runRouting=True, runSHM=True, eval_years=5):
     '''
     Use the Basic Model Interface to interact with the CFE to 
     run it with the given parameters. Currently runs on either
@@ -473,8 +425,10 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
         T_thresh = snowparam_dict["T_thresh"]
         delta_K = 24.0 # scale to hourly
         
-        # get indices for run
-        spinupIndex, startIndex, endIndex, spinup_start, start_date, end_date = get_water_year_indices(df_forcing, n_years=eval_years, spinup_years=1, date_col="time")        
+        # spinupIndex, startIndex, endIndex, spinup_start, start_date, end_date = get_water_year_indices(df_forcing[startIndex:endIndex+1],n_years=eval_years, spinup_years=1, date_col="time") 
+
+        # get indices for run        
+        spinupIndex, startIndex, endIndex = get_train_period(df_forcing, eval_start, eval_end, date_col="time")
         
         if aorc:
             for precip, temp, pet in zip(df_forcing['APCP_surface'][:endIndex], df_forcing['TMP_2maboveground'][:endIndex], df_forcing["potential_evaporation"][:endIndex]):
@@ -497,7 +451,7 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
                     else:
                         output_lists[output].append(cfe_instance.get_value(output))
         elif nldas:
-            for precip, temp, pet in zip(df_forcing['total_precipitation'][:endIndex+10], df_forcing['temperature'][:endIndex+10], df_forcing["potential_evaporation"][:endIndex+10]):
+            for precip, temp, pet in zip(df_forcing['total_precipitation'][spinupIndex:endIndex+1], df_forcing['temperature'][spinupIndex:endIndex+1], df_forcing["potential_evaporation"][spinupIndex:endIndex+1]):
                 # run the snow routine
                 if runSHM:
                     melt, rain, snow_storage = shm_snow_step(precip, temp, snow_storage, T_thresh=T_thresh, DDF=DDF, delta_K=delta_K)
@@ -561,7 +515,7 @@ def run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_par
 
         # there are missing values, best way to fill?
         qobs = df_forcing["qobs_mm_per_hour"] 
-        
+                
         # we need to return the observed flow to compare with
         # the lse is designed to look at the Yalan Data flow
-        return qobs, startIndex, endIndex  # _filled
+        return qobs, spinupIndex, startIndex, endIndex

@@ -54,8 +54,14 @@ def get_nse(obs, sim):
     ind = (~np.isnan(obs)) & (~np.isnan(sim))
     obs = obs[ind]
     sim = sim[ind]
+    
+    r = np.corrcoef(sim, obs)[0, 1]
+    alpha = np.std(sim) / np.std(obs)
+    beta = (np.mean(sim) - np.mean(obs)) / np.std(obs)
+    
+    nse = 1-(np.nansum((sim-obs)**2)/np.nansum((obs-np.nanmean(obs))**2))
 
-    return 1-(np.nansum((sim-obs)**2)/np.nansum((obs-np.nanmean(obs))**2))
+    return nse, r, alpha, beta
 
 def cal_metrics(obs, sim, outfile_metric='', overwrite=True):
 
@@ -74,15 +80,15 @@ def cal_metrics(obs, sim, outfile_metric='', overwrite=True):
     sim = sim[ind]
 
     # calculate metrics
-    kge2009, r, alpha, beta = get_KGE(obs, sim)
+    kge2009, r_kge, alpha_kge, beta_kge = get_KGE(obs, sim)
     kge2012 = get_modified_KGE(obs,sim)
     rmse = get_RMSE(obs,sim)
     me = get_mean_error(obs, sim)
     mae = get_mean_abs_error(obs, sim)
-    nse = get_nse(obs, sim)
+    nse, r_nse, alpha_nse, beta_nse = get_nse(obs, sim)
 
-    dfout = pd.DataFrame([[kge2009, r, alpha, beta, kge2012, rmse, me, mae, nse]], 
-                         columns=['kge2009', 'r', 'alpha', 'beta', 'kge2012', 'rmse', 'me', 'mae', 'nse'])
+    dfout = pd.DataFrame([[kge2009, r_kge, r_nse, alpha_kge, alpha_nse, beta_kge, beta_nse, kge2012, rmse, me, mae, nse]], 
+                         columns=['kge2009', 'r (kge)', 'r (nse)', 'alpha (kge)', 'alpha (nse)', 'beta (kge)', 'beta (nse)', 'kge2012', 'rmse', 'me', 'mae', 'nse'])
 
     if len(outfile_metric)>0:
         dfout.to_csv(outfile_metric, index=False)

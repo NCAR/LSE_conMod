@@ -175,11 +175,11 @@ else:
             # serial
             for tarparam in range(num_trial):
                 run_modelflow_OneBasin_OneParamSet(model, tarparam, iter_now, gageID, tarbasin, Ptar, Ttar, PETtar, AREAtar, DEPTHtar, config_template, 
-                                                   routing, snow, eval_years, outpath_parent, outpath_basin, eval_indexStart, eval_indexEnd, eval_obs)
+                                                   routing, snow, eval_years, outpath_parent, outpath_basin, eval_indexStart, eval_indexEnd, train_run_period, eval_obs)
         else:
             # parallel
             alltrial = [(model, tarparam, iter_now, gageID, tarbasin, Ptar, Ttar, PETtar, AREAtar, DEPTHtar, config_template, routing,
-                        snow, eval_years, outpath_parent, outpath_basin, eval_indexStart, eval_indexEnd, eval_obs) for tarparam in range(num_trial)]
+                        snow, eval_years, outpath_parent, outpath_basin, eval_indexStart, eval_indexEnd, train_run_period, eval_obs) for tarparam in range(num_trial)]
             
             with multiprocessing.Pool(processes=ncpu) as pool:
                 pool.starmap(run_modelflow_OneBasin_OneParamSet, alltrial)

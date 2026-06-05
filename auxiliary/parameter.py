@@ -156,7 +156,7 @@ def load_allbasin_params_metrics_OneIter(inpath_basins, outpath_lse, gageIDs, ta
         df_metric.index = np.arange(len(df_metric))
         df_basinid = df_metric[["basin_num", "basin_id", "hru_id"]]
     
-        selected_met = ['kge2009', 'r', 'alpha', 'beta', 'kge2012', 'rmse', 'me', 'mae', 'nse']
+        selected_met = ['kge2009', 'r (kge)', 'r (nse)', 'alpha (kge)', 'alpha (nse)', 'beta (kge)', 'beta (nse)', 'kge2012', 'rmse', 'me', 'mae', 'nse']
         df_metric = df_metric[selected_met]
 
         df_param.to_csv(file_all_param, index=False, compression='gzip')
@@ -246,7 +246,7 @@ def get_objective_function(df_metric, objfunc='normKGE2012'):
 # SSE calibration
 
 
-def load_oneasin_params_metrics_AllIter(inpath_basins, gageID, iterend, external_iter0_info={}):
+def load_onebasin_params_metrics_AllIter(inpath_basins, gageID, iterend, external_iter0_info={}):
     # if len(external_iter0_path)>0, use iter-0 data from external_iter0_path
     
     # Load data: outputs from each iteration

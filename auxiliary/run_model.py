@@ -15,7 +15,7 @@ from runCFE import run_CFE_OneBasin_OneParamSet, load_CFE_output
 
 
 def run_modelflow_OneBasin_OneParamSet(model, tarparam, iter, gageID, tarbasin, Ptar, Ttar, PETtar, AREAtar, DEPTHtar, config_template, 
-                                       routing, snow, eval_years, outpath_parent, outpath_basin, eval_indexStart, eval_indexEnd, eval_obs):
+                                       routing, snow, eval_years, outpath_parent, outpath_basin, eval_indexStart, eval_indexEnd, train_run_period, eval_obs):
     
     # Target parameter set
     file_paramset = f'{outpath_parent}/{gageID}/param_sets/paramset_iter{iter}_trial{tarparam}.pkl'
@@ -26,7 +26,9 @@ def run_modelflow_OneBasin_OneParamSet(model, tarparam, iter, gageID, tarbasin, 
     if model == "HBV":
         run_HBV_OneBasin_OneParamSet(Ptar, Ttar, PETtar, file_paramset, outfile)
     elif model == "CFE":
-        qobs, eval_indexStart, eval_indexEnd = run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_paramset, outfile, config_template, routing, snow, eval_years)
+        startPeriod, endPeriod = train_run_period[0], train_run_period[1]
+        qobs, eval_indexSpinup, eval_indexStart, eval_indexEnd = run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_paramset, outfile, 
+                                                                                              config_template, startPeriod, endPeriod, routing, snow, eval_years)
         
         # only if using AORC or NLDAS
         if qobs is not False:
@@ -42,8 +44,8 @@ def run_modelflow_OneBasin_OneParamSet(model, tarparam, iter, gageID, tarbasin, 
     if model == "HBV":
         eval_sim = hbv_out['flow_sim'][eval_indexStart:eval_indexEnd+1]
     elif model == "CFE":
-        # eval_sim = hbv_out['flow_sim'][eval_indexStart:eval_indexEnd+1]
-        eval_sim = hbv_out['runoff_depth_mm'][eval_indexStart:eval_indexEnd+1]
+        startIndex = eval_indexStart - eval_indexSpinup
+        eval_sim = hbv_out['runoff_depth_mm'][startIndex:]
     
     df_tar_metric = cal_metrics(eval_obs, eval_sim, outfile_metric, overwrite=False)
     

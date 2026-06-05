@@ -121,8 +121,63 @@ def get_index_of_nested_period(period_parent, period_subset):
 
     return indexStart, indexEnd
 
+def get_train_period(df, startDate, endDate, date_col=None):
+    '''
+    Generates the indices for the time period given in the configuration file.
+    Differs per basin, so this function gets called before running the CFE. 
+    
+    Parameters:
+        df: Forcing dataframe
+        startDate: The beginning of the period
+        endDate: The end of the period
+        date_col (Optional): Name of your date column
+    Returns:
+        spinup_index, start_index, end_index: Appropriate indices for the df
+    '''
+    df = df.copy()
+
+    # Input dates
+    start = pd.Timestamp(startDate).normalize()
+    end = pd.Timestamp(endDate).normalize().replace(hour=23)
+
+    # ----------------------------------------
+    # Spin-up starts at the provided startDate
+    # ----------------------------------------
+    spinup_mask = df[date_col] >= start
+
+    # ----------------------------------------
+    # Training starts at next water year
+    # Water year starts Oct 1
+    # ----------------------------------------
+    if start.month >= 10:
+        train_start = pd.Timestamp(year=start.year + 1, month=10, day=1)
+    else:
+        train_start = pd.Timestamp(year=start.year, month=10, day=1)
+
+    train_mask = (
+        (df[date_col] >= train_start) &
+        (df[date_col] <= end)
+    )
+
+    # Indices
+    spinup_index = df.index[spinup_mask].min()
+    start_index = df.index[train_mask].min()
+    end_index = df.index[train_mask].max()
+
+    return spinup_index, start_index, end_index
+
 def get_water_year_indices(df, n_years, spinup_years=1, date_col=None):
     """
+    Grabs n_years from the df with the given number of spinup years for evaluation.
+    
+    ***Currently, the CFE has a specific time period for evaluation. So this function
+    is not needed anymore, but may still be useful in the future***
+    
+    Parameters:
+        df: Forcing dataframe
+        n_years: The number of evaluation years to grab
+        spinup_years (Optional): The number of years to count as spin-up
+        date_col (Optional): Name of your date column
     Returns:
         spinup_idx, start_idx, end_idx,
         spinup_start, start_date, end_date
