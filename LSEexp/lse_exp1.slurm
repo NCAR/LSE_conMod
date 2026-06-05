@@ -6,7 +6,7 @@
 #SBATCH --time=48:00:00
 #SBATCH --output=/beegfs/sets/aw-ciroh/projects/cfe_lse/logs/cfe/%j.out  # Standard output
 #SBATCH --error=/beegfs/sets/aw-ciroh/projects/cfe_lse/logs/cfe/%j.err   # Standard error
-#SBATCH --account=2306081036    # Account number
+#SBATCH --account=    # Account number
 
 ncpu=36
 
