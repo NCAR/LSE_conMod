@@ -4,8 +4,8 @@
 #SBATCH --job-name=lse_cfe
 #SBATCH --cpus-per-task=36
 #SBATCH --time=48:00:00
-#SBATCH --output=/home/m10870071/scratch/logs/cfe/%j.out  # Standard output
-#SBATCH --error=/home/m10870071/scratch/logs/cfe/%j.err   # Standard error
+#SBATCH --output=/beegfs/sets/aw-ciroh/projects/cfe_lse/logs/cfe/%j.out  # Standard output
+#SBATCH --error=/beegfs/sets/aw-ciroh/projects/cfe_lse/logs/cfe/%j.err   # Standard error
 #SBATCH --account=    # Account number
 
 ncpu=36
