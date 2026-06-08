@@ -31,6 +31,7 @@ else:
     ncpu = 1
 
 run_HBV = True # if False, HBV won't be run. this can be used when you know model simulations have been generated
+run_LSE = False # if False, only run initial sampling + model simulation
 
 print('Configuration file:',config_file)
 print('Processing iteration', iter_now)
@@ -195,8 +196,13 @@ else:
         # Use multiprocessing with a progress bar
         with multiprocessing.Pool(processes=ncpu) as pool:
             pool.starmap(merge_parameter_metric_OneBasin_OneIter, args)
-
-
+            
+# stop program if flag is set to False
+print("run_LSE is set to ", run_LSE)
+if run_LSE == False:
+    print("Exiting before running LSE.")
+    sys.exit()
+            
 ##########################################################################################
 # Large-sample emulator: Train and Optimization
 
@@ -266,7 +272,6 @@ print("Input shape:", x_all.shape)
 ###### Prepare model training target
 y_all = get_objective_function(df_metric, objfunc)
 print('Output shape:', y_all.shape)
-
 
 ################### Train an emulator
 
