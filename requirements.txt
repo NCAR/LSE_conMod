@@ -1,0 +1,11 @@
+# Direct Python dependencies for the GitHub calibration scripts.
+# See README.md for the separately supplied optimization modules.
+numpy
+pandas
+scipy
+scikit-learn
+pymoo
+toml
+tqdm
+xarray
+ipywidgets
