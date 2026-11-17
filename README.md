@@ -44,3 +44,6 @@ When using the CAMELS data, also cite the [time series](https://doi.org/10.5065/
 ## Licensing and attribution
 
 See [LICENSE](LICENSE) for the proposed license for original project software and [NOTICE](NOTICE) for the scope and third-party material.
+
+## Acknowledgement  
+We thank Rhys Pulling for his contribution to integrating the CFE model into the LSE-conMod package.
