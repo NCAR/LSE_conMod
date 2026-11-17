@@ -7,22 +7,46 @@ from parameter import generate_initial_parameter_sets
 from evaluate import cal_metrics
 
 sys.path.append('../HBV/')
-from HBV_KM import run_HBV_OneBasin_OneParamSet, load_HBV_output
+# from HBV_KM import run_HBV_OneBasin_OneParamSet, load_HBV_output
+from HBV import run_HBV_OneBasin_OneParamSet, load_HBV_output
+
+sys.path.append('../CFE/')
+from runCFE import run_CFE_OneBasin_OneParamSet, load_CFE_output
 
 
-def run_modelflow_OneBasin_OneParamSet(tarparam, iter, gageID, tarbasin, Ptar, Ttar, PETtar, outpath_parent, outpath_basin, eval_indexStart, eval_indexEnd, eval_obs):
+def run_modelflow_OneBasin_OneParamSet(model, tarparam, iter, gageID, tarbasin, Ptar, Ttar, PETtar, AREAtar, DEPTHtar, config_template, 
+                                       routing, snow, eval_years, outpath_parent, outpath_basin, eval_indexStart, eval_indexEnd, train_run_period, eval_obs):
     
     # Target parameter set
     file_paramset = f'{outpath_parent}/{gageID}/param_sets/paramset_iter{iter}_trial{tarparam}.pkl'
-
-    # Run HBV
-    outfile_hbv = f'{outpath_basin}/hbv_iter{iter}_trial{tarparam}.pkl'
-    run_HBV_OneBasin_OneParamSet(Ptar, Ttar, PETtar, file_paramset, outfile_hbv)
+    
+    # Run selected model
+    # HBV does not need a config file
+    outfile = f'{outpath_basin}/hbv_iter{iter}_trial{tarparam}.pkl'
+    if model == "HBV":
+        run_HBV_OneBasin_OneParamSet(Ptar, Ttar, PETtar, file_paramset, outfile)
+    elif model == "CFE":
+        startPeriod, endPeriod = train_run_period[0], train_run_period[1]
+        qobs, eval_indexSpinup, eval_indexStart, eval_indexEnd = run_CFE_OneBasin_OneParamSet(Ptar, Ttar, PETtar, AREAtar, DEPTHtar, file_paramset, outfile, 
+                                                                                              config_template, startPeriod, endPeriod, routing, snow, eval_years)
+        
+        # only if using AORC or NLDAS
+        if qobs is not False:
+            eval_obs = qobs[eval_indexStart:eval_indexEnd+1]
+    else:
+        raise ValueError("Invalid value provided")
 
     # Evaluate model output
     outfile_metric = f'{outpath_basin}/eval_iter{iter}_trial{tarparam}.csv'
-    hbv_out = load_HBV_output(outfile_hbv)
-    eval_sim = hbv_out['flow_sim'][eval_indexStart:eval_indexEnd+1]
+    hbv_out = load_HBV_output(outfile)
+    
+    # get output depending on model
+    if model == "HBV":
+        eval_sim = hbv_out['flow_sim'][eval_indexStart:eval_indexEnd+1]
+    elif model == "CFE":
+        startIndex = eval_indexStart - eval_indexSpinup
+        eval_sim = hbv_out['runoff_depth_mm'][startIndex:]
+    
     df_tar_metric = cal_metrics(eval_obs, eval_sim, outfile_metric, overwrite=False)
     
     # Print output
@@ -125,8 +149,6 @@ def extract_best_paramset_OneBasin_AllIter(outfile_optmz_paramset, path_archive,
         f.write(f'iter: {best_trial}\n')
     
     
-
-
 def run_model_on_best_paramset(outfile_optmz_paramset, outfile_optmz_simu, outfile_metric, path_archive, iterend, P, T, PET, flowobs, eval_indexStart, eval_indexEnd, external_iter0_path=''):
 
     extract_best_paramset_OneBasin_AllIter(outfile_optmz_paramset, path_archive, iterend, objfunc='nse', method='max', external_iter0_path=external_iter0_path)

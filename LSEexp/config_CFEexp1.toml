@@ -1,0 +1,40 @@
+[intro]
+author = "Rhys Pulling" #"Guoqiang Tang"
+name = "CFE LSE calibration"
+date = "2025-07"
+
+[HPC]
+projectCode = ""
+
+[model]
+model_to_run = "CFE" # HBV OR CFE
+config_temp = "/home/m10870071/lse/HBV_LSE/CFE/templates/nldas_template.json" # only needed for CFE
+routing = true # toggle routing for CFE
+snow = true # toggle snow routine for CFE
+eval_years = 10 # number of years to evaluate (***not necessary anymore, focus on dates)
+
+[data]
+# file_parameter_list = "../data/HBV_v1.1_param_bounds.csv" 
+file_parameter_list = "../data/CFE_param_bounds.csv"
+inpath_data = "/u/st/dr/awwood/aw-ciroh-proj/sets-aw-ciroh/projects/tmpdir/data_Yalan"
+IDfile = "basinParams.txt" 
+
+[output]
+outpath_parent = "/beegfs/sets/aw-ciroh/projects/cfe_lse/HBV_CAMELS/LSEexp5"
+
+[dates]
+# only used for HBV
+alldata_period = ["1991-10-01", "2019-09-30"]
+train_run_period = ["1999-10-01", "2008-09-30"] 
+train_eval_period = ["2000-10-01", "2008-09-30"]
+test_run_period = ["1991-10-01", "1999-09-30"] 
+test_eval_period = ["1994-10-01", "1999-09-30"]
+
+[emulator]
+objfunc = "normKGE2009"
+sampling_method = "lh"
+num_init = 200 
+num_per_iter = 50
+num_iter = 2
+optmz_times = 1
+attrlist = "All" #"Xie2021"

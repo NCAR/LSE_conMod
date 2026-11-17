@@ -31,6 +31,7 @@ else:
     ncpu = 1
 
 run_HBV = True # if False, HBV won't be run. this can be used when you know model simulations have been generated
+run_LSE = False # if False, only run initial sampling + model simulation
 
 print('Configuration file:',config_file)
 print('Processing iteration', iter_now)
@@ -161,6 +162,7 @@ else:
         eval_obs = target_train[tarbasin, :, 0][eval_indexStart : eval_indexEnd + 1]
 
         if ncpu == 1:
+            
             # serial
             for tarparam in range(num_trial):
                 run_modelflow_OneBasin_OneParamSet(tarparam, iter_now, gageID, tarbasin, Ptar, Ttar, PETtar,
@@ -200,8 +202,7 @@ else:
         # Use multiprocessing with a progress bar
         with multiprocessing.Pool(processes=ncpu) as pool:
             pool.starmap(merge_parameter_metric_OneBasin_OneIter, args)
-
-
+            
 ##########################################################################################
 # Large-sample emulator: Train and Optimization
 
@@ -210,7 +211,7 @@ outpath_lse = f'{outpath_parent}/LargeSampleEmulator'
 os.makedirs(outpath_lse, exist_ok=True)
 print('LSE outpath:', outpath_lse)
 
-###### generate files containing parameter, metric, and basinid information
+###### generate files containineter, metric, and basinid information
 iterend = iter_now+1
 
 if external_iter0 == True:
