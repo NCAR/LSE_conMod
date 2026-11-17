@@ -1,0 +1,45 @@
+cff-version: 1.2.0
+message: "If you use LSE-conMod, please cite the companion article and the archived release used in your work."
+title: LSE-conMod
+type: software
+authors:
+  - given-names: Guoqiang
+    family-names: Tang
+    orcid: "https://orcid.org/0000-0002-0923-583X"
+  - given-names: Andrew W.
+    family-names: Wood
+    orcid: "https://orcid.org/0000-0002-6231-0085"
+repository-code: "https://github.com/NCAR/LSE_conMod"
+preferred-citation:
+  type: article
+  title: "Calibration, Regionalization, and Locally-Informed Selection of Hydrological Model Parameters Using AI-Based Large-Sample Emulators"
+  journal: Water Resources Research
+  status: in-press
+  authors:
+    - given-names: Guoqiang
+      family-names: Tang
+      orcid: "https://orcid.org/0000-0002-0923-583X"
+    - given-names: Andrew W.
+      family-names: Wood
+      orcid: "https://orcid.org/0000-0002-6231-0085"
+    - given-names: Yalan
+      family-names: Song
+    - given-names: Mozhgan A.
+      family-names: Farahani
+    - given-names: Chaopeng
+      family-names: Shen
+references:
+  - type: software
+    title: "LSE-conMod: Code and Data for Hydrological Parameter Calibration and Regionalization"
+    authors:
+      - given-names: Guoqiang
+        family-names: Tang
+        orcid: "https://orcid.org/0000-0002-0923-583X"
+      - given-names: Andrew
+        family-names: Wood
+        orcid: "https://orcid.org/0000-0002-6231-0085"
+    publisher:
+      name: Zenodo
+    version: "1.0.0"
+    year: 2026
+    doi: 10.5281/zenodo.23873715

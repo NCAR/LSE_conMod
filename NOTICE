@@ -1,0 +1,43 @@
+LSE-conMod
+
+The proposed BSD 3-Clause license in LICENSE applies to original project
+software on adoption by its rights holders. Third-party code, translations,
+and data are subject to the terms of their respective rights holders.
+
+HBV model implementations
+
+* HBV/HBV_KM.py credits the HBV code written by Kevin McGuire, the R
+  translation by J. P. Gannon, and contributions from Jan Seibert's HBV Light.
+  Guoqiang Tang translated the R implementation to Python. The referenced
+  upstream repository does not declare a license. Confirm redistribution
+  terms for the translation before including it in an open-source release.
+  https://github.com/VT-Hydroinformatics/16-Intro-Modeling-HBV/blob/master/HBV/HBV.R
+
+* HBV/HBV.py and HBV/HBV_raw.py credit the hydroDL2 HBV implementation. The
+  hydroDL2 repository carried Apache-2.0 when the GitHub snapshot was first
+  committed in January 2025. Upstream changed its terms in June 2025. The
+  exact source revision for the local adaptations is unrecorded. Confirm
+  it and retain the applicable upstream license text and notices before
+  distributing these adaptations as part of a release.
+  https://github.com/mhpi/hydrodl2/blob/65317f672d4497aa4c1bb6ab83bb802e95947f07/LICENSE
+  https://github.com/mhpi/hydrodl2/commit/b8b3155c333368d7e663ec510c45fae52d16d02d
+
+Optimization and regionalization dependencies
+
+* The GitHub workflows import MO-ASMO support modules externally. The
+  public MO-ASMO repository carries GPL-3.0. The Zenodo snapshot includes
+  research copies of some optimization modules and separately attributes
+  its RavenPy-derived helper. RavenPy carries the MIT license.
+  https://github.com/gongw03/MO-ASMO
+  https://github.com/CSHS-CWRA/RavenPy
+
+CAMELS data
+
+* The basin information and processed inputs originate from CAMELS. Cite the
+  original time series and catchment attributes alongside the study release.
+  https://doi.org/10.5065/D6MW2F4D
+  https://doi.org/10.5065/D6G73C3Q
+
+* The archived code and processed data are described by the Zenodo record,
+  which lists CC BY 4.0. Upstream source terms remain applicable.
+  https://doi.org/10.5281/zenodo.23873715
